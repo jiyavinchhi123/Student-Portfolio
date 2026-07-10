@@ -1,0 +1,111 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=Bebas+Neue&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(15, 23, 42, 0.12);
+  --glow: rgba(59, 130, 246, 0.28);
+}
+
+.dark {
+  --glass-bg: rgba(17, 24, 39, 0.6);
+  --glass-border: rgba(148, 163, 184, 0.15);
+  --glow: rgba(59, 130, 246, 0.35);
+}
+
+.dark body {
+  background-color: #0a0a0a;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: "Space Grotesk", "Sora", "Poppins", sans-serif;
+  overflow-x: hidden;
+}
+
+.font-bebas {
+  font-family: "Bebas Neue", "Space Grotesk", sans-serif;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #22d3ee, #818cf8, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+}
+
+.glow-border {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 0 30px var(--glow);
+}
+
+.dark .glow-border {
+  box-shadow: none;
+}
+
+.hero-grid {
+  background-size: 40px 40px;
+}
+
+.img-blend {
+  mix-blend-mode: multiply;
+}
+
+.fade-bottom {
+  position: relative;
+  display: inline-block;
+}
+
+
+input,
+textarea {
+  outline: none;
+}
+
+.section-padding {
+  padding-top: 96px;
+  padding-bottom: 96px;
+}
+
+@media (max-width: 640px) {
+  .section-padding {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+}
+
+.fade-bottom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) 60%,
+      rgba(0, 0, 0, 1) 100%);
+  pointer-events: none;
+}
+
+.fade-bottom.fade-light::after {
+  background: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 1) 100%);
+}
