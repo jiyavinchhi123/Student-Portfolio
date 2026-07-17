@@ -5,6 +5,9 @@ import Footer from "./components/Footer.jsx";
 import ScrollProgress from "./components/ScrollProgress.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import Home from "./pages/Home.jsx";
+import About from "./components/About.jsx";
+import Skills from "./components/Skills.jsx";
+import Achievements from "./components/Achievements.jsx";
 import Projects from "./components/Projects.jsx";
 import Contact from "./components/Contact.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -86,7 +89,10 @@ export default function App() {
       />
       <main className="flex-grow">
         <Routes>
-          <Route path="/" element={<Home theme={theme} skillList={skillList} />} />
+          <Route path="/" element={<Home theme={theme} />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/skills" element={<Skills skillList={skillList} />} />
+          <Route path="/achievements" element={<Achievements />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />

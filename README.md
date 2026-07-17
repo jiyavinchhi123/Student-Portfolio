@@ -7,7 +7,10 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 ### 1. Multi-Page client-side Navigation (React Router v6)
 - **`BrowserRouter` integration** at the entrypoint (`main.jsx`).
 - **Dynamic Route-based Views** in `App.jsx`:
-  - `/` &rarr; `Home` Page (rendering Hero, About, Skills, and Achievements)
+  - `/` &rarr; `Home` Page (rendering Header Hero banner only)
+  - `/about` &rarr; About Me section page
+  - `/skills` &rarr; Skills section page
+  - `/achievements` &rarr; Achievements section page
   - `/projects` &rarr; standalone Projects Catalog page
   - `/contact` &rarr; standalone Contact Form page
 - **SPA Links** implemented using React Router `<Link>` and `<NavLink>` inside `<Navbar>` to avoid full page reloads.
