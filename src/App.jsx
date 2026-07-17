@@ -1,23 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ScrollProgress from "./components/ScrollProgress.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
-import Header from "./components/Header.jsx";
-import About from "./components/About.jsx";
-import Skills from "./components/Skills.jsx";
+import Home from "./pages/Home.jsx";
 import Projects from "./components/Projects.jsx";
-import Achievements from "./components/Achievements.jsx";
 import Contact from "./components/Contact.jsx";
-
-const sections = [
-  { id: "hero", label: "Home" },
-  { id: "about", label: "About" },
-  { id: "skills", label: "Skills" },
-  { id: "projects", label: "Projects" },
-  { id: "achievements", label: "Achievements" },
-  { id: "contact", label: "Contact" }
-];
+import NotFound from "./pages/NotFound.jsx";
 
 const skillList = [
   "C", "C++", "Java", "JavaScript", "PHP", "Python",
@@ -29,12 +19,11 @@ const skillList = [
   "Communication", "Problem Solving", "Teamwork", "Leadership"
 ];
 
-
 export default function App() {
   const [theme, setTheme] = useState("dark");
-  const [active, setActive] = useState("hero");
   const [scroll, setScroll] = useState(0);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -51,34 +40,22 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Update scroll progress and scroll-to-top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setScroll(0);
+  }, [location.pathname]);
+
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
       const height = document.documentElement.scrollHeight - window.innerHeight;
       const progress = height > 0 ? (scrollTop / height) * 100 : 0;
       setScroll(progress);
-
-      const offset = 140;
-      let current = "hero";
-      sections.forEach((section) => {
-        const el = document.getElementById(section.id);
-        if (el) {
-          const top = el.offsetTop;
-          if (scrollTop + offset >= top) {
-            current = section.id;
-          }
-        }
-      });
-      setActive(current);
     };
 
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    // IntersectionObserver removed in favor of scroll position logic
   }, []);
 
   const handleToggleTheme = () => {
@@ -101,21 +78,19 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen ${background} transition-colors duration-500`}>
+    <div className={`min-h-screen flex flex-col ${background} transition-colors duration-500`}>
       <ScrollProgress value={scroll} />
       <Navbar
-        sections={sections}
-        active={active}
         onToggleTheme={handleToggleTheme}
         theme={theme}
       />
-      <Header name="JIYA" themeColor={theme === "dark" ? "#60a5fa" : "#2563eb"} theme={theme} />
-      <main>
-        <About />
-        <Skills skillList={skillList} />
-        <Projects />
-        <Achievements />
-        <Contact />
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<Home theme={theme} skillList={skillList} />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </main>
       <Footer />
     </div>

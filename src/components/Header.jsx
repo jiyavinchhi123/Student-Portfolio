@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { FiGithub, FiLinkedin, FiMail } from "react-icons/fi";
 import useTyping from "./useTyping";
 import whiteImg from "../assets/White.png";
@@ -71,14 +72,14 @@ export default function Header({ name, themeColor, theme }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <a
-                href="#projects"
+              <Link
+                to="/projects"
                 className={`inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full text-sm font-semibold transition hover:scale-105 shadow-[0_0_18px_rgba(59,130,246,0.35)] ${
                   isDark ? "bg-white text-black " : "bg-black text-white "
                 }`}
               >
                 View Projects
-              </a>
+              </Link>
               <a
                 href={resumeFile}
                 download="Jiya_Vinchhi_Resume.pdf"

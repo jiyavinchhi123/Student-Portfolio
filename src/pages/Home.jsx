@@ -1,19 +1,19 @@
-import Hero from "../components/Hero.jsx";
+import Header from "../components/Header.jsx";
 import About from "../components/About.jsx";
 import Skills from "../components/Skills.jsx";
-import Projects from "../components/Projects.jsx";
 import Achievements from "../components/Achievements.jsx";
-import Contact from "../components/Contact.jsx";
 
-export default function Home({ theme }) {
+export default function Home({ theme, skillList }) {
   return (
-    <main>
-      <Hero theme={theme} />
+    <>
+      <Header
+        name="JIYA"
+        themeColor={theme === "dark" ? "#60a5fa" : "#2563eb"}
+        theme={theme}
+      />
       <About />
-      <Skills />
-      <Projects />
+      <Skills skillList={skillList} />
       <Achievements />
-      <Contact />
-    </main>
+    </>
   );
 }

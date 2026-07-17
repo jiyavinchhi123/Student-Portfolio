@@ -1,8 +1,15 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
 import { FiMenu, FiMoon, FiSun, FiX } from "react-icons/fi";
 
-export default function Navbar({ sections, active, onToggleTheme, theme }) {
+const links = [
+  { path: "/", label: "Home" },
+  { path: "/projects", label: "Projects" },
+  { path: "/contact", label: "Contact" }
+];
+
+export default function Navbar({ onToggleTheme, theme }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,10 +22,10 @@ export default function Navbar({ sections, active, onToggleTheme, theme }) {
       transition={{ duration: 0.6 }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-        <a
-          href="#hero"
+        <Link
+          to="/"
           onClick={() => setOpen(false)}
-          className={`text-lg font-semibold tracking-wide ${
+          className={`text-lg font-semibold tracking-wide flex items-center ${
             theme === "dark" ? "text-white" : "text-slate-900"
           }`}
         >
@@ -32,31 +39,37 @@ export default function Navbar({ sections, active, onToggleTheme, theme }) {
             JV
           </span>
           <span className="hidden sm:inline opacity-70">Jiya Vinchhi</span>
-        </a>
+        </Link>
         <div className="hidden md:flex items-center gap-6 text-sm">
-          {sections.map((section) => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              className={`relative transition px-1 py-1 ${
-                active === section.id
-                  ? theme === "dark"
-                    ? "text-white drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
-                    : "text-slate-900 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
-                  : theme === "dark"
-                    ? "text-white/60 hover:text-white"
-                    : "text-slate-600 hover:text-slate-900"
-              }`}
+          {links.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `relative transition px-1 py-1 ${
+                  isActive
+                    ? theme === "dark"
+                      ? "text-white drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
+                      : "text-slate-900 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
+                    : theme === "dark"
+                      ? "text-white/60 hover:text-white"
+                      : "text-slate-600 hover:text-slate-900"
+                }`
+              }
             >
-              {section.label}
-              {active === section.id && (
-                <span
-                  className={`absolute left-0 -bottom-1 h-[2px] w-full shadow-[0_0_14px_rgba(59,130,246,0.6)] ${
-                    theme === "dark" ? "bg-white" : "bg-slate-900"
-                  }`}
-                />
+              {({ isActive }) => (
+                <>
+                  {link.label}
+                  {isActive && (
+                    <span
+                      className={`absolute left-0 -bottom-1 h-[2px] w-full shadow-[0_0_14px_rgba(59,130,246,0.6)] ${
+                        theme === "dark" ? "bg-white" : "bg-slate-900"
+                      }`}
+                    />
+                  )}
+                </>
               )}
-            </a>
+            </NavLink>
           ))}
         </div>
         <div className="flex items-center gap-2">
@@ -94,23 +107,25 @@ export default function Navbar({ sections, active, onToggleTheme, theme }) {
           }`}
         >
           <div className="mx-auto grid max-w-6xl gap-1 pt-3 text-sm">
-            {sections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
+            {links.map((link) => (
+              <NavLink
+                key={link.path}
+                to={link.path}
                 onClick={() => setOpen(false)}
-                className={`rounded-xl px-4 py-3 transition ${
-                  active === section.id
-                    ? theme === "dark"
-                      ? "bg-white/10 text-white"
-                      : "bg-slate-100 text-slate-950"
-                    : theme === "dark"
-                      ? "text-white/70 hover:bg-white/10 hover:text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                }`}
+                className={({ isActive }) =>
+                  `rounded-xl px-4 py-3 transition ${
+                    isActive
+                      ? theme === "dark"
+                        ? "bg-white/10 text-white"
+                        : "bg-slate-100 text-slate-950"
+                      : theme === "dark"
+                        ? "text-white/70 hover:bg-white/10 hover:text-white"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                  }`
+                }
               >
-                {section.label}
-              </a>
+                {link.label}
+              </NavLink>
             ))}
           </div>
         </div>
