@@ -71,8 +71,8 @@ export default function App() {
   const background = useMemo(
     () =>
       theme === "dark"
-        ? "bg-[#0a0a0a] text-white"
-        : "bg-slate-50 text-slate-900",
+        ? "bg-black text-white"
+        : "bg-white text-slate-900",
     [theme]
   );
 

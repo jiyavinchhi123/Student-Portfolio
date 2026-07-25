@@ -18,13 +18,13 @@ export default function Footer() {
             </p>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-white/60">
               <li>
-                <a className="hover:text-blue-500 dark:hover:text-blue-300" href="#hero">
+                <a className="hover:text-blue-600 dark:hover:text-blue-400" href="#hero">
                   Home
                 </a>
               </li>
               <li>
                 <a
-                  className="hover:text-blue-500 dark:hover:text-blue-300"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
                   href="#projects"
                 >
                   Projects
@@ -32,7 +32,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  className="hover:text-blue-500 dark:hover:text-blue-300"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
                   href="#skills"
                 >
                   Skills
@@ -40,7 +40,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  className="hover:text-blue-500 dark:hover:text-blue-300"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
                   href="#contact"
                 >
                   Contact
@@ -55,7 +55,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center justify-center sm:justify-start gap-4 text-slate-600 dark:text-white/70">
               <a
-                className="transition hover:text-blue-500 dark:hover:text-blue-300 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                className="transition hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
                 href="https://github.com/jiyavinchhi123"
                 target="_blank"
                 rel="noreferrer"
@@ -63,7 +63,7 @@ export default function Footer() {
                 <FiGithub size={20} />
               </a>
               <a
-                className="transition hover:text-blue-500 dark:hover:text-blue-300 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                className="transition hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
                 href="https://linkedin.com/in/jiya-vinchhi-a75678332/"
                 target="_blank"
                 rel="noreferrer"
@@ -71,7 +71,7 @@ export default function Footer() {
                 <FiLinkedin size={20} />
               </a>
               <a
-                className="transition hover:text-blue-500 dark:hover:text-blue-300 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                className="transition hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
                 href="mailto:jiya.vinchhi2412@gmail.com"
               >
                 <FiMail size={20} />

@@ -125,7 +125,7 @@ export default function Skills({ skillList = [] }) {
     if (!skillList || skillList.length === 0) return categories.slice(0, 5);
     return categories.slice(0, 5).map(cat => ({
       ...cat,
-      items: cat.items.filter(item => 
+      items: cat.items.filter(item =>
         skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
       )
     })).filter(cat => cat.items.length > 0);
@@ -133,14 +133,14 @@ export default function Skills({ skillList = [] }) {
 
   const filteredCore = useMemo(() => {
     if (!skillList || skillList.length === 0) return coreSubjects;
-    return coreSubjects.filter(item => 
+    return coreSubjects.filter(item =>
       skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
     );
   }, [skillList]);
 
   const filteredSoft = useMemo(() => {
     if (!skillList || skillList.length === 0) return softSkills;
-    return softSkills.filter(item => 
+    return softSkills.filter(item =>
       skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
     );
   }, [skillList]);
@@ -154,36 +154,69 @@ export default function Skills({ skillList = [] }) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionTitle title="Tech Stack" subtitle="Skills" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 lg:gap-14">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 lg:gap-14"
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { staggerChildren: 0.12 } }
+          }}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.1 }}
+        >
           {filteredCategories.map((category) => (
-            <div key={category.title} className="relative">
-              <div className="skill-box min-h-[240px] sm:min-h-[280px] space-y-4 p-4 sm:p-6 glass rounded-none border-2 border-slate-300/50 dark:border-white/30 shadow-[0_10px_24px_rgba(147,197,253,0.35)] dark:shadow-[0_10px_24px_rgba(29,78,216,0.45)] transition-transform duration-300 hover:scale-[1.03]">
+            <motion.div
+              key={category.title}
+              className="relative"
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80, damping: 15 } }
+              }}
+            >
+              <div className="skill-box min-h-[240px] sm:min-h-[280px] space-y-4 p-4 sm:p-6 glass rounded-none border-2 border-slate-300/50 dark:border-white/30 shadow-[0_10px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_10px_24px_rgba(59,130,246,0.25)] transition-all duration-500 hover:scale-[1.03] hover:border-blue-500/40 dark:hover:border-blue-400/40">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-center">
                   {category.title}
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-3">
+                <motion.div
+                  className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-3"
+                  variants={{
+                    hidden: {},
+                    show: { transition: { staggerChildren: 0.05 } }
+                  }}
+                >
                   {category.items.map((item, index) => {
                     const Icon = item.icon;
                     return (
-                      <div key={`${item.label}-${index}`} className="flex flex-col items-center gap-2">
-                        <div className="glass w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-transform duration-300 hover:scale-105 hover:shadow-[0_0_18px_rgba(147,197,253,0.35)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.45)]">
+                      <motion.div
+                        key={`${item.label}-${index}`}
+                        className="flex flex-col items-center gap-2"
+                        variants={{
+                          hidden: { scale: 0.8, opacity: 0 },
+                          show: { scale: 1, opacity: 1, transition: { type: "spring", stiffness: 120, damping: 12 } }
+                        }}
+                      >
+                        <motion.div
+                          className="glass w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-all duration-300 hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)] cursor-pointer"
+                          whileHover={{ scale: 1.12, y: -4 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
                           {Icon ? (
                             <Icon className="text-2xl" style={{ color: item.color }} />
                           ) : (
                             <span className="text-xs text-slate-500 dark:text-white/70">{item.label}</span>
                           )}
-                        </div>
-                        <div className="text-xs text-center text-slate-700 dark:text-white/80">
+                        </motion.div>
+                        <div className="text-xs text-center text-slate-700 dark:text-white/80 font-sans">
                           {item.label}
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <motion.div
           className="mt-10 sm:mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10"
@@ -193,7 +226,7 @@ export default function Skills({ skillList = [] }) {
           viewport={{ once: true, amount: 0.2 }}
         >
           <motion.div variants={item} className="space-y-4">
-            <div className="glass rounded-2xl p-4 sm:p-6 shadow-[0_10px_24px_rgba(147,197,253,0.35)] dark:shadow-[0_10px_24px_rgba(29,78,216,0.45)] transition-transform duration-300 hover:scale-[1.02]">
+            <div className="glass rounded-2xl p-4 sm:p-6 shadow-[0_10px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_10px_24px_rgba(59,130,246,0.25)] transition-transform duration-300 hover:scale-[1.02]">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-center">
                 Core Subjects
               </h3>
@@ -204,9 +237,9 @@ export default function Skills({ skillList = [] }) {
                     <motion.div
                       key={skill.label}
                       variants={item}
-                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(147,197,253,0.35)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.45)]"
+                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)]"
                     >
-                      <Icon className="mx-auto mb-2 text-blue-300" />
+                      <Icon className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       {skill.label}
                     </motion.div>
                   );
@@ -216,7 +249,7 @@ export default function Skills({ skillList = [] }) {
           </motion.div>
 
           <motion.div variants={item} className="space-y-4">
-            <div className="glass rounded-2xl p-4 sm:p-6 shadow-[0_10px_24px_rgba(147,197,253,0.35)] dark:shadow-[0_10px_24px_rgba(29,78,216,0.45)] transition-transform duration-300 hover:scale-[1.02]">
+            <div className="glass rounded-2xl p-4 sm:p-6 shadow-[0_10px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_10px_24px_rgba(59,130,246,0.25)] transition-transform duration-300 hover:scale-[1.02]">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-center">
                 Soft Skills
               </h3>
@@ -227,9 +260,9 @@ export default function Skills({ skillList = [] }) {
                     <motion.div
                       key={skill.label}
                       variants={item}
-                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(147,197,253,0.35)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.45)]"
+                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)]"
                     >
-                      <Icon className="mx-auto mb-2 text-blue-300" />
+                      <Icon className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       {skill.label}
                     </motion.div>
                   );

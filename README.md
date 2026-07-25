@@ -24,6 +24,16 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
   - **Character Counter**: Live validation counting input characters in the message textbox (`0 / 500`).
 - **UI Visibility Tooltip**: A secondary `useState` hook controlling an animated contact help box ("Need Help?").
 
+### 3. Dynamic GitHub API Integration & Asynchronous State Handling (Practical 3)
+- **Asynchronous State Management**: Leverages React `useState` and `useEffect` to manage `repos`, `loading`, and `error` states correctly.
+- **REST API Integration**: Dynamically fetches public repositories from the GitHub API for `jiyavinchhi123`.
+- **Interactive UI Feedback**:
+  - **Loading Spinner Component** (`Spinner.jsx`): Displays a beautiful glassmorphic spinning circle with pulsating text during network requests.
+  - **Error Alert Banner Component** (`ErrorMessage.jsx`): Shows details when a fetch fails (e.g., rate-limiting or offline) with an interactive **Retry Button** to trigger refetches.
+- **Search & Filter Input**: A real-time filter bar lets users filter the loaded GitHub repositories by name.
+- **Star Counts & Metadata**: Displays stargazers count with a yellow star icon and the repository's primary programming language badge.
+- **Sort Ordering**: Repositories are automatically sorted by star count descending, highlighting the most popular projects first.
+
 ---
 
 ## 🛠️ Installation & Setup

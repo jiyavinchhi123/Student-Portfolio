@@ -41,16 +41,45 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
 };
 
+// Premium 3D tilt handlers
+const handleMouseMove = (e) => {
+  const card = e.currentTarget;
+  const rect = card.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const xc = rect.width / 2;
+  const yc = rect.height / 2;
+  const rotateY = ((x - xc) / xc) * 8; // max 8 deg
+  const rotateX = -((y - yc) / yc) * 8; // max 8 deg
+  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.03, 1.03, 1.03)`;
+  card.style.boxShadow = "0 15px 25px rgba(59, 130, 246, 0.18)";
+};
+
+const handleMouseLeave = (e) => {
+  const card = e.currentTarget;
+  card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+  card.style.boxShadow = "";
+};
+
 function StatCard({ value, label }) {
   return (
     <motion.div
       variants={item}
-      className="glass rounded-2xl p-5 text-center border border-slate-200/60 dark:border-white/10 shadow-[0_0_24px_rgba(147,197,253,0.45)] dark:shadow-[0_0_24px_rgba(59,130,246,0.45)] transition-all duration-300 hover:scale-[1.05] hover:-translate-y-2 hover:shadow-[0_0_32px_rgba(147,197,253,0.55)] dark:hover:shadow-[0_0_32px_rgba(59,130,246,0.6)]"
+      className="glass rounded-2xl p-5 text-center border border-slate-200/60 dark:border-white/10 shadow-[0_0_24px_rgba(59,130,246,0.15)] dark:shadow-[0_0_24px_rgba(59,130,246,0.25)] transition-all duration-300 ease-out cursor-pointer"
+      whileTap={{ scale: 0.98 }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
-      <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+      <motion.div
+        className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white font-sans"
+        initial={{ scale: 0.9 }}
+        whileInView={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 10 }}
+        viewport={{ once: true }}
+      >
         {value}
-      </div>
-      <div className="mt-1 text-xs uppercase tracking-widest text-blue-300">
+      </motion.div>
+      <div className="mt-1 text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-semibold font-sans">
         {label}
       </div>
     </motion.div>
@@ -61,22 +90,37 @@ function AchievementCard({ title, description, icon: Icon }) {
   return (
     <motion.div
       variants={item}
-      className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl p-5 shadow-[0_0_24px_rgba(147,197,253,0.45)] dark:shadow-[0_0_24px_rgba(59,130,246,0.45)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_0_32px_rgba(147,197,253,0.55)] dark:hover:shadow-[0_0_32px_rgba(59,130,246,0.6)]"
+      className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl p-5 shadow-[0_0_24px_rgba(59,130,246,0.15)] dark:shadow-[0_0_24px_rgba(59,130,246,0.25)] transition-all duration-300 ease-out cursor-pointer group"
+      whileHover="hovered"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-500 flex items-center justify-center">
+        <motion.div
+          className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0"
+          variants={{
+            hovered: { rotate: 360, scale: 1.15, backgroundColor: "rgba(59,130,246,0.2)" }
+          }}
+          transition={{ type: "spring", stiffness: 150, damping: 12 }}
+        >
           <Icon className="text-lg" />
-        </div>
+        </motion.div>
         <div>
-          <h4 className="text-base font-semibold text-slate-900 dark:text-white">
+          <h4 className="text-base font-semibold text-slate-900 dark:text-white font-sans group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {title}
           </h4>
-          <p className="mt-1 text-sm text-slate-600 dark:text-white/70">
+          <p className="mt-1 text-sm text-slate-600 dark:text-white/70 font-sans">
             {description}
           </p>
         </div>
       </div>
-      <div className="mt-4 h-[2px] w-12 bg-gradient-to-r from-blue-400 to-purple-400" />
+      <motion.div
+        className="mt-4 h-[2px] w-12 bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-500 dark:to-blue-300"
+        variants={{
+          hovered: { width: "100%" }
+        }}
+        transition={{ duration: 0.4 }}
+      />
     </motion.div>
   );
 }
@@ -86,7 +130,7 @@ export default function Achievements() {
     <section id="achievements" className="section-padding bg-white dark:bg-black">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10">
-          <p className="text-xs sm:text-sm uppercase tracking-[0.22em] sm:tracking-[0.3em] text-blue-300">
+          <p className="text-xs sm:text-sm uppercase tracking-[0.22em] sm:tracking-[0.3em] text-blue-600 dark:text-blue-400">
             Milestones & Accomplishments
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-semibold text-slate-900 dark:text-white">

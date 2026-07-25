@@ -4,7 +4,7 @@ export default function SectionTitle({ title, subtitle }) {
   return (
     <div className="mb-10 sm:mb-12 text-center">
       <motion.p
-        className="text-xs sm:text-sm uppercase tracking-[0.22em] sm:tracking-[0.3em] text-blue-400 dark:text-blue-400"
+        className="text-xs sm:text-sm uppercase tracking-[0.22em] sm:tracking-[0.3em] text-blue-600 dark:text-blue-400"
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
