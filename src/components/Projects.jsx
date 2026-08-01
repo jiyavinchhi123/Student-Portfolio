@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import finliteImg from "../assets/projects/FinLite.png";
 import formfluxImg from "../assets/projects/FormFlux.png";
 import resumefitImg from "../assets/projects/ResumeFit.png";
 import siyarangImg from "../assets/projects/SiyaRang.png";
+import taskmanagerImg from "../assets/projects/TaskManager.png";
 import Spinner from "./Spinner.jsx";
 import ErrorMessage from "./ErrorMessage.jsx";
 
@@ -48,6 +50,20 @@ const projects = [
     demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
     repo: "https://github.com/jiyavinchhi123/FormFlux",
     image: formfluxImg
+  },
+  {
+    name: "Task Manager API",
+    description: "A RESTful backend server with complete CRUD endpoints using an Express middleware pipeline.",
+    tech: ["Node.js", "Express.js", "CORS", "JavaScript"],
+    features: [
+      "Strict Content-Type verification middleware",
+      "Custom global logging and error handling pipeline",
+      "Route-specific integer parameter validation",
+      "Comprehensive REST CRUD endpoints (GET/POST/PUT/DELETE)"
+    ],
+    demo: "/projects/task-manager",
+    repo: "https://github.com/jiyavinchhi123/task-manager-api",
+    image: taskmanagerImg
   }
 ];
 
@@ -68,6 +84,7 @@ function TechBadges({ items }) {
 
 function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const isLocalDemo = project.demo && project.demo.startsWith("/");
 
   // Parse standard watch URL to clean embed link
   const getEmbedUrl = (url) => {
@@ -105,20 +122,22 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
           onMouseLeave={handleMouseLeave}
         >
           {/* Top-Right Dog-Ear Corner Flap */}
-          <div
-            onDoubleClick={() => setIsFlipped(true)}
-            className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-blue-600 to-blue-500 rounded-bl-3xl shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center cursor-pointer group/corner z-25 transition-all duration-300 hover:w-14 hover:h-14"
-            title="Double click corner to flip card and play video!"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="w-3.5 h-3.5 text-white -translate-y-1.5 translate-x-1.5 rotate-45 transition-transform group-hover/corner:scale-110"
+          {!isLocalDemo && (
+            <div
+              onDoubleClick={() => setIsFlipped(true)}
+              className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-blue-600 to-blue-500 rounded-bl-3xl shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center cursor-pointer group/corner z-25 transition-all duration-300 hover:w-14 hover:h-14"
+              title="Double click corner to flip card and play video!"
             >
-              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.33-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-            </svg>
-          </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-3.5 h-3.5 text-white -translate-y-1.5 translate-x-1.5 rotate-45 transition-transform group-hover/corner:scale-110"
+              >
+                <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.33-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+              </svg>
+            </div>
+          )}
 
           <div className="space-y-5">
             <div>
@@ -134,13 +153,22 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
               ))}
             </ul>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={() => setIsFlipped(true)}
-                className="inline-flex justify-center px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
-                title="Or double-click the top-right corner!"
-              >
-                Watch Demo
-              </button>
+              {isLocalDemo ? (
+                <Link
+                  to={project.demo}
+                  className="inline-flex justify-center items-center px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
+                >
+                  Try Interactive Demo
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setIsFlipped(true)}
+                  className="inline-flex justify-center px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
+                  title="Or double-click the top-right corner!"
+                >
+                  Watch Demo
+                </button>
+              )}
               <a
                 href={project.repo}
                 target="_blank"
@@ -190,7 +218,7 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
 
           <div className="relative w-full h-full flex flex-col justify-between gap-4">
             <div className="relative w-full flex-grow overflow-hidden rounded-xl bg-black border border-white/5 shadow-inner">
-              {isFlipped && (
+              {isFlipped && !isLocalDemo && (
                 <iframe
                   src={embedUrl}
                   title={`${project.name} Demo`}

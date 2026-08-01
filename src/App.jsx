@@ -11,6 +11,7 @@ import Achievements from "./components/Achievements.jsx";
 import Projects from "./components/Projects.jsx";
 import Contact from "./components/Contact.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import TaskManagerDemo from "./components/TaskManagerDemo.jsx";
 
 const skillList = [
   "C", "C++", "Java", "JavaScript", "PHP", "Python",
@@ -94,6 +95,7 @@ export default function App() {
           <Route path="/skills" element={<Skills skillList={skillList} />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/task-manager" element={<TaskManagerDemo />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
