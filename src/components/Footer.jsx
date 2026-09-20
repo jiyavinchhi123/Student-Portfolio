@@ -1,4 +1,5 @@
 import { FiGithub, FiLinkedin, FiMail } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -80,10 +81,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-slate-200/60 dark:border-white/10 pt-4 flex items-center justify-center">
+        <div className="mt-8 border-t border-slate-200/60 dark:border-white/10 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-center text-xs text-slate-600 dark:text-white/60">
             © 2026 Jiya Vinchhi - Built with ❤️
           </p>
+          <Link
+            to="/login"
+            className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-white/40 hover:text-blue-500 dark:hover:text-blue-400 font-semibold transition"
+          >
+            Admin Entrance
+          </Link>
         </div>
       </div>
     </footer>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { FiEdit2, FiTrash2, FiPlus, FiCheck } from "react-icons/fi";
 import finliteImg from "../assets/projects/FinLite.png";
 import formfluxImg from "../assets/projects/FormFlux.png";
 import resumefitImg from "../assets/projects/ResumeFit.png";
@@ -8,64 +9,17 @@ import siyarangImg from "../assets/projects/SiyaRang.png";
 import taskmanagerImg from "../assets/projects/TaskManager.png";
 import Spinner from "./Spinner.jsx";
 import ErrorMessage from "./ErrorMessage.jsx";
+import EditModal from "./EditModal.jsx";
 
-const projects = [
-  {
-    name: "SiyaRang",
-    description: "Customized e-commerce platform for a Bandhani store.",
-    tech: ["HTML", "CSS", "JS", "Python"],
-    features: ["Product catalog", "Custom UI", "Secure storage"],
-    demo: "https://www.youtube.com/watch?v=FVvFQQ20D3M",
-    repo: "https://github.com/jiyavinchhi123/SiyaRang-Bandhej",
-    image: siyarangImg
-  },
-  {
-    name: "ResumeFit",
-    description: "Resume-to-job fit scoring with actionable improvements.",
-    tech: ["Java", "Python", "Supabase"],
-    features: ["Score out of 100", "Suggestions", "Trial model"],
-    demo: "https://www.youtube.com/watch?v=wBWmEWm8Bvg",
-    repo: "https://github.com/jiyavinchhi123/Job-Fit-Score",
-    image: resumefitImg
-  },
-  {
-    name: "FinLite",
-    description:
-      "Smart finance manager built for modern business owners with automated insights and beautiful reporting.",
-    tech: ["React", "Spring Boot", "Supabase", "Python", "Charts"],
-    features: [
-      "Auto PDF balance sheet generation",
-      "Smart predictions with interactive charts",
-      "Guided, user-friendly workflows"
-    ],
-    demo: "https://www.youtube.com/watch?v=TQz-BSR0Dv4&t=15s",
-    repo: "https://github.com/jiyavinchhi123/FinLite",
-    image: finliteImg
-  },
-  {
-    name: "FormFlux",
-    description: "Dynamic form generator with database integration.",
-    tech: ["MongoDB", "Java", "JS"],
-    features: ["Auto DB creation", "Response tracking", "XLSX export"],
-    demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
-    repo: "https://github.com/jiyavinchhi123/FormFlux",
-    image: formfluxImg
-  },
-  {
-    name: "Task Manager API",
-    description: "A RESTful backend server with complete CRUD endpoints using an Express middleware pipeline.",
-    tech: ["Node.js", "Express.js", "CORS", "JavaScript"],
-    features: [
-      "Strict Content-Type verification middleware",
-      "Custom global logging and error handling pipeline",
-      "Route-specific integer parameter validation",
-      "Comprehensive REST CRUD endpoints (GET/POST/PUT/DELETE)"
-    ],
-    demo: "/projects/task-manager",
-    repo: "https://github.com/jiyavinchhi123/task-manager-api",
-    image: taskmanagerImg
-  }
-];
+const SERVER_URL = "http://localhost:5000";
+
+const imageMap = {
+  siyarangImg: siyarangImg,
+  resumefitImg: resumefitImg,
+  finliteImg: finliteImg,
+  formfluxImg: formfluxImg,
+  taskmanagerImg: taskmanagerImg
+};
 
 function TechBadges({ items }) {
   return (
@@ -82,11 +36,10 @@ function TechBadges({ items }) {
   );
 }
 
-function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
+function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdmin, onEdit, onDelete, onToggleMilestone }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const isLocalDemo = project.demo && project.demo.startsWith("/");
 
-  // Parse standard watch URL to clean embed link
   const getEmbedUrl = (url) => {
     if (!url) return "";
     try {
@@ -105,23 +58,43 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
   };
 
   const embedUrl = getEmbedUrl(project.demo);
+  const displayImage = imageMap[project.image] || project.image || taskmanagerImg;
 
   return (
-    <div className="relative w-full h-[580px] sm:h-[520px] lg:h-[400px] [perspective:1500px]">
+    <div className="relative w-full h-[620px] sm:h-[580px] lg:h-[450px] [perspective:1500px]">
       <motion.div
         className="w-full h-full relative [transform-style:preserve-3d] transition-transform duration-700 ease-in-out"
         style={{
           transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
         }}
       >
-        {/* Front Side: Specifications and details */}
+        {/* Front Side */}
         <div
           className="absolute inset-0 w-full h-full rounded-2xl bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-[0_16px_32px_rgba(15,23,42,0.08)] p-4 sm:p-6 lg:p-8 grid lg:grid-cols-2 gap-6 lg:gap-8 items-center transition-all duration-300 ease-out overflow-hidden"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Top-Right Dog-Ear Corner Flap */}
+          {/* Admin Edit/Delete */}
+          {isAdmin && (
+            <div className="absolute top-4 left-4 flex gap-2 z-30">
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(project); }}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-full p-2 shadow transition"
+                title="Edit project"
+              >
+                <FiEdit2 size={13} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(project._id); }}
+                className="bg-red-600 hover:bg-red-500 text-white rounded-full p-2 shadow transition"
+                title="Delete project"
+              >
+                <FiTrash2 size={13} />
+              </button>
+            </div>
+          )}
+
           {!isLocalDemo && (
             <div
               onDoubleClick={() => setIsFlipped(true)}
@@ -139,57 +112,83 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
             </div>
           )}
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
               <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white font-sans">
                 {project.name}
               </h3>
               <p className="text-slate-600 dark:text-white/70 mt-2 text-sm leading-relaxed font-sans">{project.description}</p>
             </div>
-            <TechBadges items={project.tech} />
-            <ul className="text-xs sm:text-sm text-slate-600 dark:text-white/70 space-y-1.5 font-sans">
-              {project.features.map((feature) => (
+            <TechBadges items={project.tech || []} />
+            <ul className="text-xs sm:text-sm text-slate-600 dark:text-white/70 space-y-1 font-sans">
+              {(project.features || []).map((feature) => (
                 <li key={feature}>- {feature}</li>
               ))}
             </ul>
+
+            {/* Recruiter Milestones Display */}
+            {project.milestones && project.milestones.length > 0 && (
+              <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Technical Task Progress:</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  {project.milestones.map((milestone, idx) => (
+                    <label key={idx} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={milestone.completed}
+                        disabled={!isAdmin}
+                        onChange={() => onToggleMilestone(project, idx)}
+                        className="rounded text-blue-500 bg-slate-100 border-slate-300 dark:bg-white/5 dark:border-white/10"
+                      />
+                      <span className={milestone.completed ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-300"}>
+                        {milestone.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               {isLocalDemo ? (
                 <Link
                   to={project.demo}
-                  className="inline-flex justify-center items-center px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
+                  className="inline-flex justify-center items-center px-5 py-2 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
                 >
                   Try Interactive Demo
                 </Link>
               ) : (
                 <button
                   onClick={() => setIsFlipped(true)}
-                  className="inline-flex justify-center px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
+                  className="inline-flex justify-center px-5 py-2 text-sm font-semibold rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-md transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
                   title="Or double-click the top-right corner!"
                 >
                   Watch Demo
                 </button>
               )}
-              <a
-                href={project.repo}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex justify-center px-5 py-2.5 text-sm font-semibold rounded-full border border-slate-300 text-slate-700 hover:border-slate-400 dark:border-white/20 dark:text-white/80 dark:hover:border-white/40 transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
-              >
-                GitHub
-              </a>
+              {project.repo && (
+                <a
+                  href={project.repo}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex justify-center px-5 py-2 text-sm font-semibold rounded-full border border-slate-300 text-slate-700 hover:border-slate-400 dark:border-white/20 dark:text-white/80 dark:hover:border-white/40 transition hover:shadow-[0_0_18px_rgba(59,130,246,0.45)] cursor-pointer"
+                >
+                  GitHub
+                </a>
+              )}
             </div>
           </div>
           <div className="relative group hidden lg:block">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/15 to-blue-600/5 blur-2xl dark:from-blue-500/10 dark:to-blue-600/5" />
             <img
-              src={project.image}
+              src={displayImage}
               alt={project.name}
               className="relative rounded-2xl w-full h-48 sm:h-64 object-cover shadow-lg dark:shadow-none"
             />
           </div>
         </div>
 
-        {/* Back Side: Embedded video canvas */}
+        {/* Back Side */}
         <div
           className="absolute inset-0 w-full h-full rounded-2xl bg-slate-950 border border-slate-800 p-4 sm:p-6 lg:p-8 flex flex-col justify-between shadow-[0_16px_32px_rgba(15,23,42,0.5)] overflow-hidden"
           style={{
@@ -198,7 +197,6 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
             transform: "rotateY(180deg)",
           }}
         >
-          {/* Top-Right Return Corner Flap */}
           <div
             onDoubleClick={() => setIsFlipped(false)}
             className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-slate-800 to-slate-700 rounded-bl-3xl shadow-md flex items-center justify-center cursor-pointer group/corner z-25 transition-all duration-300 hover:w-14 hover:h-14"
@@ -249,12 +247,136 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave }) {
   );
 }
 
-export default function Projects() {
+export default function Projects({ isAdmin }) {
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [retryTrigger, setRetryTrigger] = useState(0);
+
+  // Db Projects state
+  const [dbProjects, setDbProjects] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProjId, setEditingProjId] = useState(null);
+  const [projForm, setProjForm] = useState({
+    name: "",
+    description: "",
+    techText: "",
+    featuresText: "",
+    demo: "",
+    repo: "",
+    image: "",
+    milestonesText: ""
+  });
+
+  const fetchDbProjects = () => {
+    fetch(`${SERVER_URL}/portfolio/projects`)
+      .then(res => {
+        if (res.ok) return res.json();
+      })
+      .then(data => {
+        if (data) setDbProjects(data);
+      })
+      .catch(err => console.error("Error loading database projects:", err));
+  };
+
+  useEffect(() => {
+    fetchDbProjects();
+  }, []);
+
+  const handleEdit = (proj) => {
+    setEditingProjId(proj._id);
+    setProjForm({
+      name: proj.name || "",
+      description: proj.description || "",
+      techText: proj.tech?.join(", ") || "",
+      featuresText: proj.features?.join("\n") || "",
+      demo: proj.demo || "",
+      repo: proj.repo || "",
+      image: proj.image || "",
+      milestonesText: proj.milestones?.map(m => `${m.label}:${m.completed}`).join(", ") || ""
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this project?")) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/portfolio/projects/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) fetchDbProjects();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleMilestone = async (project, milestoneIndex) => {
+    try {
+      const updatedMilestones = [...project.milestones];
+      updatedMilestones[milestoneIndex].completed = !updatedMilestones[milestoneIndex].completed;
+
+      const res = await fetch(`${SERVER_URL}/portfolio/projects/${project._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ milestones: updatedMilestones })
+      });
+
+      if (res.ok) {
+        fetchDbProjects();
+      }
+    } catch (err) {
+      console.error("Error toggling project milestone:", err);
+    }
+  };
+
+  const handleProjSave = async () => {
+    try {
+      // Parse milestones
+      const milestones = projForm.milestonesText
+        .split(",")
+        .map(item => {
+          const parts = item.split(":");
+          const label = parts[0]?.trim();
+          if (!label) return null;
+          const completed = parts[1]?.trim().toLowerCase() === "true";
+          return { label, completed };
+        })
+        .filter(Boolean);
+
+      const payload = {
+        name: projForm.name,
+        description: projForm.description,
+        tech: projForm.techText.split(",").map(t => t.trim()).filter(Boolean),
+        features: projForm.featuresText.split("\n").map(f => f.trim()).filter(Boolean),
+        demo: projForm.demo,
+        repo: projForm.repo,
+        image: projForm.image,
+        milestones
+      };
+
+      const url = editingProjId 
+        ? `${SERVER_URL}/portfolio/projects/${editingProjId}` 
+        : `${SERVER_URL}/portfolio/projects`;
+      const method = editingProjId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setIsModalOpen(false);
+        setEditingProjId(null);
+        fetchDbProjects();
+      } else {
+        alert("Failed to save project.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Premium 3D tilt handler
   const handleMouseMove = (e) => {
@@ -292,7 +414,6 @@ export default function Projects() {
       .then((data) => {
         if (isMounted) {
           if (Array.isArray(data)) {
-            // Sort by stargazers count desc
             const sorted = data.sort((a, b) => b.stargazers_count - a.stargazers_count);
             setRepos(sorted);
           } else {
@@ -325,26 +446,43 @@ export default function Projects() {
   );
 
   return (
-    <section id="projects" className="section-padding">
+    <section id="projects" className="section-padding relative">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        
         {/* Section Title */}
-        <div className="text-center mb-10 sm:mb-12">
+        <div className="relative text-center mb-10 sm:mb-12">
           <p className="text-sm uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">
             Featured Work
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-semibold text-slate-900 dark:text-white">
             Real-World Projects
           </h2>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setEditingProjId(null);
+                setProjForm({ name: "", description: "", techText: "", featuresText: "", demo: "", repo: "", image: "", milestonesText: "" });
+                setIsModalOpen(true);
+              }}
+              className="absolute top-0 right-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition"
+            >
+              <FiPlus /> Add Project
+            </button>
+          )}
         </div>
 
         {/* Featured Projects Grid */}
         <div className="space-y-8 sm:space-y-12">
-          {projects.map((project) => (
+          {dbProjects.map((project) => (
             <FeaturedProjectCard
-              key={project.name}
+              key={project._id}
               project={project}
               handleMouseMove={handleMouseMove}
               handleMouseLeave={handleMouseLeave}
+              isAdmin={isAdmin}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleMilestone={handleToggleMilestone}
             />
           ))}
         </div>
@@ -384,121 +522,158 @@ export default function Projects() {
               </div>
               <input
                 type="text"
-                placeholder="Search repositories by name..."
+                placeholder="Search repositories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-200 bg-white/50 dark:border-white/10 dark:bg-white/5 backdrop-blur-md text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all font-sans text-sm"
+                className="w-full pl-11 pr-4 py-3 rounded-full border border-slate-200/80 bg-white/50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all dark:border-white/15 dark:bg-white/5 dark:text-white"
               />
             </div>
           )}
 
-          {/* Dynamic Content Rendering */}
+          {/* Grid Layout of Cards */}
           {loading ? (
-            <Spinner />
+            <div className="flex justify-center py-12">
+              <Spinner />
+            </div>
           ) : error ? (
-            <ErrorMessage message={error} onRetry={handleRetry} />
+            <div className="max-w-md mx-auto">
+              <ErrorMessage
+                message={error}
+                hint="Verify your internet connection or check if the GitHub username is correct."
+                onRetry={handleRetry}
+              />
+            </div>
+          ) : filteredRepos.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+              No repositories found matching "{searchTerm}"
+            </div>
           ) : (
-            <>
-              {filteredRepos.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-slate-500 dark:text-slate-400 font-sans">
-                    No repositories found matching "{searchTerm}"
-                  </p>
-                </div>
-              ) : (
-                <motion.div
-                  className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                  variants={{
-                    hidden: {},
-                    show: { transition: { staggerChildren: 0.08 } }
-                  }}
-                  initial="hidden"
-                  animate="show"
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredRepos.slice(0, 6).map((repo) => (
+                <div
+                  key={repo.id}
+                  className="glass flex flex-col justify-between p-6 rounded-2xl border border-slate-200/85 hover:border-blue-500/40 dark:border-white/10 dark:hover:border-blue-400/40 transition-all duration-300 hover:shadow-lg"
                 >
-                  {filteredRepos.map((repo) => (
-                    <motion.div
-                      key={repo.id}
-                      className="flex flex-col justify-between p-6 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm transition-all duration-300 ease-out group"
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
-                      }}
-                      whileTap={{ scale: 0.98 }}
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                      {repo.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                      {repo.description || "No description provided."}
+                    </p>
+                  </div>
+                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-200/60 dark:border-white/10 text-xs">
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      ★ {repo.stargazers_count} Stars
+                    </span>
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-semibold transition"
                     >
-                      <div>
-                        {/* Title and Stars */}
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="font-semibold text-lg text-slate-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors line-clamp-1 font-sans" title={repo.name}>
-                            {repo.name}
-                          </h3>
-                          <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-sans text-xs bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full shrink-0">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              className="h-3 w-3 text-yellow-500"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.6 3.1-.219 4.755c-.038.84.814 1.46 1.539 1.1l4.099-2.058 4.099 2.058c.725.36 1.577-.26 1.539-1.1l-.218-4.755 3.6-3.1c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.83-4.401z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            {repo.stargazers_count}
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <p className="text-slate-600 dark:text-white/70 text-sm mt-3 line-clamp-3 min-h-[3rem] font-sans">
-                          {repo.description || "No description provided."}
-                        </p>
-                      </div>
-
-                      {/* Language and Link */}
-                      <div className="mt-6 flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4">
-                        {repo.language ? (
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/5 px-2 py-1 rounded font-sans">
-                            {repo.language}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 px-2 py-1 rounded font-sans">
-                            N/A
-                          </span>
-                        )}
-
-                        <a
-                          href={repo.html_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline transition-all cursor-pointer font-sans"
-                        >
-                          View Repo
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2.5}
-                            stroke="currentColor"
-                            className="h-3 w-3 group-hover:translate-x-0.5 transition-transform"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                            />
-                          </svg>
-                        </a>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </>
+                      View Code →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
+
+      {/* Project Editor Modal */}
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingProjId ? "Edit Project Details" : "Add New Project"}
+        onSave={handleProjSave}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Project Name</label>
+            <input
+              type="text"
+              value={projForm.name}
+              onChange={(e) => setProjForm({ ...projForm, name: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Description</label>
+            <textarea
+              value={projForm.description}
+              onChange={(e) => setProjForm({ ...projForm, description: e.target.value })}
+              rows="3"
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Tech Stack (comma-separated)</label>
+            <input
+              type="text"
+              value={projForm.techText}
+              onChange={(e) => setProjForm({ ...projForm, techText: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              placeholder="e.g. React, Spring Boot, Python"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Features (one per line)</label>
+            <textarea
+              value={projForm.featuresText}
+              onChange={(e) => setProjForm({ ...projForm, featuresText: e.target.value })}
+              rows="3"
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              placeholder="Auto PDF generation&#10;Balance sheets"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Demo link</label>
+              <input
+                type="text"
+                value={projForm.demo}
+                onChange={(e) => setProjForm({ ...projForm, demo: e.target.value })}
+                className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">GitHub Link</label>
+              <input
+                type="text"
+                value={projForm.repo}
+                onChange={(e) => setProjForm({ ...projForm, repo: e.target.value })}
+                className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Image Key</label>
+              <input
+                type="text"
+                value={projForm.image}
+                onChange={(e) => setProjForm({ ...projForm, image: e.target.value })}
+                className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
+                placeholder="e.g. siyarangImg"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">
+              Technical Tasks / Milestones (format: label:completed, label:completed)
+            </label>
+            <input
+              type="text"
+              value={projForm.milestonesText}
+              onChange={(e) => setProjForm({ ...projForm, milestonesText: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              placeholder="e.g. Design:true, Database:false"
+            />
+          </div>
+        </div>
+      </EditModal>
     </section>
   );
 }

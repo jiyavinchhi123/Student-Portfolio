@@ -1,17 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ScrollProgress from "./components/ScrollProgress.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
-import Home from "./pages/Home.jsx";
-import About from "./components/About.jsx";
-import Skills from "./components/Skills.jsx";
-import Achievements from "./components/Achievements.jsx";
-import Projects from "./components/Projects.jsx";
-import Contact from "./components/Contact.jsx";
-import NotFound from "./pages/NotFound.jsx";
-import TaskManagerDemo from "./components/TaskManagerDemo.jsx";
+import RouteFallback from "./components/RouteFallback.jsx";
+
+// Route-based code splitting using React.lazy()
+const Home = lazy(() => import("./pages/Home.jsx"));
+const About = lazy(() => import("./components/About.jsx"));
+const Skills = lazy(() => import("./components/Skills.jsx"));
+const Achievements = lazy(() => import("./components/Achievements.jsx"));
+const Projects = lazy(() => import("./components/Projects.jsx"));
+const Contact = lazy(() => import("./components/Contact.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
+const TaskManagerDemo = lazy(() => import("./components/TaskManagerDemo.jsx"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin.jsx"));
+
 
 const skillList = [
   "C", "C++", "Java", "JavaScript", "PHP", "Python",
@@ -27,7 +33,13 @@ export default function App() {
   const [theme, setTheme] = useState("dark");
   const [scroll, setScroll] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    setIsAdmin(token === "admin-session-token-998");
+  }, [location.pathname]);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -87,18 +99,24 @@ export default function App() {
       <Navbar
         onToggleTheme={handleToggleTheme}
         theme={theme}
+        isAdmin={isAdmin}
       />
       <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Home theme={theme} />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/skills" element={<Skills skillList={skillList} />} />
-          <Route path="/achievements" element={<Achievements />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/task-manager" element={<TaskManagerDemo />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback theme={theme} />}>
+          <Routes>
+            <Route path="/" element={<Home theme={theme} isAdmin={isAdmin} />} />
+            <Route path="/about" element={<About isAdmin={isAdmin} />} />
+            <Route path="/skills" element={<Skills skillList={skillList} isAdmin={isAdmin} />} />
+            <Route path="/achievements" element={<Achievements isAdmin={isAdmin} />} />
+            <Route path="/projects" element={<Projects isAdmin={isAdmin} />} />
+            <Route path="/projects/task-manager" element={<TaskManagerDemo />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<AdminLogin onLoginSuccess={() => { setIsAdmin(true); window.location.href = "/"; }} />} />
+            <Route path="/tasks" element={isAdmin ? <TaskManagerDemo /> : <Navigate to="/login" />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

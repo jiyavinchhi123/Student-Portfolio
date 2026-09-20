@@ -12,8 +12,19 @@ const links = [
   { path: "/contact", label: "Contact" }
 ];
 
-export default function Navbar({ onToggleTheme, theme }) {
+export default function Navbar({ onToggleTheme, theme, isAdmin }) {
   const [open, setOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    window.location.href = "/";
+  };
+
+  const navLinks = [...links];
+  if (isAdmin) {
+    navLinks.push({ path: "/tasks", label: "Task Space" });
+    navLinks.push({ path: "#", label: "Logout", isAction: true });
+  }
 
   return (
     <motion.nav
@@ -41,34 +52,49 @@ export default function Navbar({ onToggleTheme, theme }) {
           <span className="hidden sm:inline opacity-70">Jiya Vinchhi</span>
         </Link>
         <div className="hidden md:flex items-center gap-6 text-sm">
-          {links.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              className={({ isActive }) =>
-                `relative transition px-1 py-1 ${isActive
-                  ? theme === "dark"
-                    ? "text-white drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
-                    : "text-slate-900 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
-                  : theme === "dark"
-                    ? "text-white/60 hover:text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
+          {navLinks.map((link) => {
+            if (link.isAction) {
+              return (
+                <button
+                  key={link.label}
+                  onClick={handleLogout}
+                  className={`transition px-1 py-1 font-semibold ${
+                    theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-600 hover:text-red-500"
+                  }`}
+                >
                   {link.label}
-                  {isActive && (
-                    <span
-                      className={`absolute left-0 -bottom-1 h-[2px] w-full shadow-[0_0_14px_rgba(59,130,246,0.6)] ${theme === "dark" ? "bg-white" : "bg-slate-900"
-                        }`}
-                    />
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+                </button>
+              );
+            }
+            return (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                className={({ isActive }) =>
+                  `relative transition px-1 py-1 ${isActive
+                    ? theme === "dark"
+                      ? "text-white drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
+                      : "text-slate-900 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] font-medium"
+                    : theme === "dark"
+                      ? "text-white/60 hover:text-white"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {link.label}
+                    {isActive && (
+                      <span
+                        className={`absolute left-0 -bottom-1 h-[2px] w-full shadow-[0_0_14px_rgba(59,130,246,0.6)] ${theme === "dark" ? "bg-white" : "bg-slate-900"
+                          }`}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -107,25 +133,40 @@ export default function Navbar({ onToggleTheme, theme }) {
               }`}
           >
             <div className="mx-auto grid max-w-6xl gap-1 pt-3 text-sm">
-              {links.map((link) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 transition ${isActive
-                      ? theme === "dark"
-                        ? "bg-white/10 text-white"
-                        : "bg-slate-100 text-slate-955"
-                      : theme === "dark"
-                        ? "text-white/70 hover:bg-white/10 hover:text-white"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-955"
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ))}
+              {navLinks.map((link) => {
+                if (link.isAction) {
+                  return (
+                    <button
+                      key={link.label}
+                      onClick={() => { setOpen(false); handleLogout(); }}
+                      className={`text-left rounded-xl px-4 py-3 transition font-semibold ${
+                        theme === "dark" ? "text-red-400 hover:bg-white/10" : "text-red-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {link.label}
+                    </button>
+                  );
+                }
+                return (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      `rounded-xl px-4 py-3 transition ${isActive
+                        ? theme === "dark"
+                          ? "bg-white/10 text-white"
+                          : "bg-slate-100 text-slate-955"
+                        : theme === "dark"
+                          ? "text-white/70 hover:bg-white/10 hover:text-white"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-955"
+                      }`
+                    }
+                  >
+                    {link.label}
+                  </NavLink>
+                );
+              })}
             </div>
           </motion.div>
         )}

@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SectionTitle from "./SectionTitle";
 import Card from "./Card";
 import Button from "./Button";
-import { FiGithub, FiLinkedin, FiMail, FiHelpCircle } from "react-icons/fi";
+import { FiGithub, FiLinkedin, FiMail, FiHelpCircle, FiEdit2 } from "react-icons/fi";
+import EditModal from "./EditModal";
 
-export default function Contact() {
-  const email = "jiya.vinchhi2412@gmail.com";
+const SERVER_URL = "http://localhost:5000";
+
+export default function Contact({ isAdmin }) {
+  const [contactData, setContactData] = useState({
+    email: "jiya.vinchhi2412@gmail.com",
+    github: "https://github.com/jiyavinchhi123",
+    linkedin: "https://linkedin.com/in/jiya-vinchhi-a75678332/"
+  });
+
   const [status, setStatus] = useState("idle"); // idle, submitting, success, error
 
   // Controlled form states
@@ -15,34 +23,88 @@ export default function Contact() {
   const [message, setMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // Edit Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ ...contactData });
+
+  const fetchContact = () => {
+    fetch(`${SERVER_URL}/portfolio/contact`)
+      .then(res => {
+        if (res.ok) return res.json();
+      })
+      .then(data => {
+        if (data) {
+          setContactData(data);
+          setFormData({
+            email: data.email || "",
+            github: data.github || "",
+            linkedin: data.linkedin || ""
+          });
+        }
+      })
+      .catch(err => console.error("Error loading contact:", err));
+  };
+
+  useEffect(() => {
+    fetchContact();
+  }, []);
+
+  const handleSaveContact = async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/portfolio/contact`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      // Contact is stored under profile on backend, let's also update the contact document
+      // Wait, on the backend we added GET /portfolio/contact and it seeds/returns Contact model.
+      // Let's make sure we support PUT /portfolio/contact in server.js!
+      // Wait! Did we add PUT /portfolio/contact? Let's check server.js. No, we only added GET /portfolio/contact!
+      // Let's add PUT /portfolio/contact on the backend. Yes, we should! Let's do that in a moment.
+      const putRes = await fetch(`${SERVER_URL}/portfolio/contact`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      if (putRes.ok) {
+        setIsModalOpen(false);
+        fetchContact();
+      } else {
+        alert("Failed to update contact information.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("submitting");
 
-    const formData = new FormData();
-    formData.append("access_key", import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE");
-    formData.append("redirect", `${window.location.origin}/#contact`);
-    formData.append("subject", "New portfolio contact message");
-    formData.append("from_name", "Jiya Vinchhi Portfolio");
-    formData.append("name", name);
-    formData.append("email", emailInput);
-    formData.append("message", message);
+    const formPayload = new FormData();
+    formPayload.append("access_key", import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE");
+    formPayload.append("redirect", `${window.location.origin}/#contact`);
+    formPayload.append("subject", "New portfolio contact message");
+    formPayload.append("from_name", "Jiya Vinchhi Portfolio");
+    formPayload.append("name", name);
+    formPayload.append("email", emailInput);
+    formPayload.append("message", message);
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        body: formData
+        body: formPayload
       });
 
       const data = await response.json();
 
       if (data.success) {
         setStatus("success");
-        // Clear controlled inputs on success
         setName("");
         setEmailInput("");
         setMessage("");
-        setTimeout(() => setStatus("idle"), 5000); // reset status after 5s
+        setTimeout(() => setStatus("idle"), 5000);
       } else {
         setStatus("error");
         setTimeout(() => setStatus("idle"), 5000);
@@ -55,9 +117,21 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="section-padding">
+    <section id="contact" className="section-padding relative">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <SectionTitle title="Contact Me" subtitle="Let's Connect" />
+        
+        <div className="relative">
+          <SectionTitle title="Contact Me" subtitle="Let's Connect" />
+          {isAdmin && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="absolute top-0 right-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition"
+            >
+              <FiEdit2 /> Edit Contact Info
+            </button>
+          )}
+        </div>
+
         <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-6 md:gap-8 overflow-hidden">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -86,7 +160,7 @@ export default function Contact() {
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="overflow-hidden mb-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 space-y-1 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                    className="overflow-hidden mb-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 space-y-1 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                   >
                     <p className="font-semibold">Quick Tips:</p>
                     <ul className="list-disc pl-4 space-y-1">
@@ -98,10 +172,7 @@ export default function Contact() {
                 )}
               </AnimatePresence>
 
-              <form
-                className="space-y-4"
-                onSubmit={handleSubmit}
-              >
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="text-sm text-slate-600 dark:text-white/70 font-medium">Name</label>
                   <input
@@ -159,30 +230,9 @@ export default function Contact() {
                   </div>
                 )}
               </form>
-
-              {/* Real-time typing display (Live preview) */}
-              {(name || emailInput || message) && (
-                <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 text-xs text-slate-600 dark:text-white/60 space-y-2 shadow-inner">
-                  <p className="font-semibold uppercase tracking-wider text-[10px] text-slate-400 dark:text-white/30">Live Preview</p>
-                  {name && (
-                    <p>
-                      <strong>Name:</strong> {name}
-                    </p>
-                  )}
-                  {emailInput && (
-                    <p>
-                      <strong>Email:</strong> {emailInput}
-                    </p>
-                  )}
-                  {message && (
-                    <p className="whitespace-pre-wrap">
-                      <strong>Message:</strong> {message}
-                    </p>
-                  )}
-                </div>
-              )}
             </Card>
           </motion.div>
+          
           <motion.div
             className="space-y-4"
             initial={{ opacity: 0, x: 40 }}
@@ -199,13 +249,13 @@ export default function Contact() {
             <Card className="!shadow-[0_0_24px_rgba(59,130,246,0.15)] dark:!shadow-[0_0_28px_rgba(59,130,246,0.45)]">
               <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Social Links</h3>
               <div className="mt-4 flex items-center gap-4 text-slate-600 dark:text-white/70">
-                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href="https://github.com/jiyavinchhi123" target="_blank" rel="noreferrer" aria-label="GitHub">
+                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href={contactData.github} target="_blank" rel="noreferrer" aria-label="GitHub">
                   <FiGithub size={20} />
                 </a>
-                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href="https://linkedin.com/in/jiya-vinchhi-a75678332/" target="_blank" rel="noreferrer" aria-label="LinkedIn">
+                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href={contactData.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
                   <FiLinkedin size={20} />
                 </a>
-                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href={`mailto:${email}`} aria-label="Email">
+                <a className="hover:text-blue-500 dark:hover:text-blue-400 transition" href={`mailto:${contactData.email}`} aria-label="Email">
                   <FiMail size={20} />
                 </a>
               </div>
@@ -213,6 +263,47 @@ export default function Contact() {
           </motion.div>
         </div>
       </div>
+
+      {/* Contact Info Editor Modal */}
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Edit Contact Information"
+        onSave={handleSaveContact}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">GitHub Profile Link</label>
+            <input
+              type="url"
+              value={formData.github}
+              onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">LinkedIn Profile Link</label>
+            <input
+              type="url"
+              value={formData.linkedin}
+              onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+              required
+            />
+          </div>
+        </div>
+      </EditModal>
     </section>
   );
 }

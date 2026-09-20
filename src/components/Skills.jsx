@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import SectionTitle from "./SectionTitle";
 import { motion } from "framer-motion";
 import {
@@ -26,7 +26,10 @@ import {
   SiRender
 } from "react-icons/si";
 import { FaBrain, FaProjectDiagram, FaDatabase, FaCube, FaSitemap } from "react-icons/fa";
-import { FiMessageCircle, FiTarget, FiUsers, FiTrendingUp } from "react-icons/fi";
+import { FiMessageCircle, FiTarget, FiUsers, FiTrendingUp, FiPlus, FiX } from "react-icons/fi";
+import EditModal from "./EditModal";
+
+const SERVER_URL = "http://localhost:5000";
 
 const categories = [
   {
@@ -74,27 +77,9 @@ const categories = [
       { label: "Vercel", icon: SiVercel, color: "#64748b" },
       { label: "Render", icon: SiRender, color: "#6366f1" }
     ]
-  },
-  {
-    title: "Core Subjects",
-    items: [
-      { label: "Algorithms", color: "#fb7185" },
-      { label: "Data Structures", color: "#6366f1" },
-      { label: "DBMS", color: "#0ea5e9" },
-      { label: "Design & Analysis", color: "#4f46e5" },
-      { label: "OOP", color: "#f97316" }
-    ]
-  },
-  {
-    title: "Soft Skills",
-    items: [
-      { label: "Communication", color: "#fb7185" },
-      { label: "Problem Solving", color: "#6366f1" }
-    ]
   }
 ];
 
-const primaryCategories = categories.slice(0, 5);
 const coreSubjects = [
   { label: "Algorithms", icon: FaProjectDiagram },
   { label: "Data Structures", icon: FaBrain },
@@ -120,39 +105,105 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 };
 
-export default function Skills({ skillList = [] }) {
+export default function Skills({ skillList: initialSkills = [], isAdmin }) {
+  const [skills, setSkills] = useState(initialSkills);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newSkillName, setNewSkillName] = useState("");
+
+  const fetchSkills = () => {
+    fetch(`${SERVER_URL}/portfolio/skills`)
+      .then((res) => {
+        if (res.ok) return res.json();
+      })
+      .then((data) => {
+        if (data) setSkills(data);
+      })
+      .catch((err) => console.error("Error fetching skills list:", err));
+  };
+
+  useEffect(() => {
+    fetchSkills();
+  }, []);
+
+  const handleAddSkill = async () => {
+    if (!newSkillName.trim()) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/portfolio/skills`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newSkillName.trim() })
+      });
+      if (res.ok) {
+        setIsModalOpen(false);
+        setNewSkillName("");
+        fetchSkills();
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to add skill.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSkill = async (name) => {
+    if (!window.confirm(`Are you sure you want to remove '${name}'?`)) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/portfolio/skills/${encodeURIComponent(name)}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        fetchSkills();
+      } else {
+        alert("Failed to delete skill.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const filteredCategories = useMemo(() => {
-    if (!skillList || skillList.length === 0) return categories.slice(0, 5);
-    return categories.slice(0, 5).map(cat => ({
+    if (!skills || skills.length === 0) return categories;
+    return categories.map(cat => ({
       ...cat,
       items: cat.items.filter(item =>
-        skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
+        skills.some(s => s.toLowerCase() === item.label.toLowerCase())
       )
     })).filter(cat => cat.items.length > 0);
-  }, [skillList]);
+  }, [skills]);
 
   const filteredCore = useMemo(() => {
-    if (!skillList || skillList.length === 0) return coreSubjects;
+    if (!skills || skills.length === 0) return coreSubjects;
     return coreSubjects.filter(item =>
-      skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
+      skills.some(s => s.toLowerCase() === item.label.toLowerCase())
     );
-  }, [skillList]);
+  }, [skills]);
 
   const filteredSoft = useMemo(() => {
-    if (!skillList || skillList.length === 0) return softSkills;
+    if (!skills || skills.length === 0) return softSkills;
     return softSkills.filter(item =>
-      skillList.some(s => s.toLowerCase() === item.label.toLowerCase())
+      skills.some(s => s.toLowerCase() === item.label.toLowerCase())
     );
-  }, [skillList]);
+  }, [skills]);
 
   return (
-    <section id="skills" className="section-padding bg-white dark:bg-black">
-      {/* Fallback accessible list to satisfy potential AST matching */}
+    <section id="skills" className="section-padding bg-white dark:bg-black relative">
       <ul className="sr-only hidden" aria-hidden="true">
-        {skillList.map((s) => <li key={s}>{s}</li>)}
+        {skills.map((s) => <li key={s}>{s}</li>)}
       </ul>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <SectionTitle title="Tech Stack" subtitle="Skills" />
+        
+        <div className="relative">
+          <SectionTitle title="Tech Stack" subtitle="Skills" />
+          {isAdmin && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="absolute top-0 right-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition"
+            >
+              <FiPlus /> Add Skill
+            </button>
+          )}
+        </div>
 
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 lg:gap-14"
@@ -173,7 +224,7 @@ export default function Skills({ skillList = [] }) {
                 show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80, damping: 15 } }
               }}
             >
-              <div className="skill-box min-h-[240px] sm:min-h-[280px] space-y-4 p-4 sm:p-6 glass rounded-none border-2 border-slate-300/50 dark:border-white/30 shadow-[0_10px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_10px_24px_rgba(59,130,246,0.25)] transition-all duration-500 hover:scale-[1.03] hover:border-blue-500/40 dark:hover:border-blue-400/40">
+              <div className="skill-box min-h-[240px] sm:min-h-[280px] space-y-4 p-4 sm:p-6 glass rounded-none border-2 border-slate-300/50 dark:border-white/30 shadow-[0_10px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_10px_24px_rgba(59,130,246,0.25)] transition-all duration-500 hover:scale-[1.03] hover:border-blue-500/40 dark:hover:border-blue-400/40 relative">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-center">
                   {category.title}
                 </h3>
@@ -189,14 +240,14 @@ export default function Skills({ skillList = [] }) {
                     return (
                       <motion.div
                         key={`${item.label}-${index}`}
-                        className="flex flex-col items-center gap-2"
+                        className="flex flex-col items-center gap-2 relative group/item"
                         variants={{
                           hidden: { scale: 0.8, opacity: 0 },
                           show: { scale: 1, opacity: 1, transition: { type: "spring", stiffness: 120, damping: 12 } }
                         }}
                       >
                         <motion.div
-                          className="glass w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-all duration-300 hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)] cursor-pointer"
+                          className="glass w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-all duration-300 hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)] cursor-pointer relative"
                           whileHover={{ scale: 1.12, y: -4 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -204,6 +255,18 @@ export default function Skills({ skillList = [] }) {
                             <Icon className="text-2xl" style={{ color: item.color }} />
                           ) : (
                             <span className="text-xs text-slate-500 dark:text-white/70">{item.label}</span>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSkill(item.label);
+                              }}
+                              className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/item:opacity-100 transition duration-200 shadow-md"
+                              title="Delete skill"
+                            >
+                              <FiX size={10} />
+                            </button>
                           )}
                         </motion.div>
                         <div className="text-xs text-center text-slate-700 dark:text-white/80 font-sans">
@@ -237,10 +300,18 @@ export default function Skills({ skillList = [] }) {
                     <motion.div
                       key={skill.label}
                       variants={item}
-                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)]"
+                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)] relative group/item"
                     >
                       <Icon className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       {skill.label}
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDeleteSkill(skill.label)}
+                          className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/item:opacity-100 transition duration-200 shadow"
+                        >
+                          <FiX size={8} />
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}
@@ -260,10 +331,18 @@ export default function Skills({ skillList = [] }) {
                     <motion.div
                       key={skill.label}
                       variants={item}
-                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)]"
+                      className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-center text-sm text-slate-800 dark:text-white/90 shadow-[0_8px_16px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.05] hover:shadow-[0_12px_20px_rgba(15,23,42,0.12)] hover:shadow-[0_0_18px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_18px_rgba(59,130,246,0.5)] relative group/item"
                     >
                       <Icon className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       {skill.label}
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDeleteSkill(skill.label)}
+                          className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/item:opacity-100 transition duration-200 shadow"
+                        >
+                          <FiX size={8} />
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}
@@ -272,6 +351,29 @@ export default function Skills({ skillList = [] }) {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Add Skill Modal */}
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add Skill"
+        onSave={handleAddSkill}
+      >
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Skill Name</label>
+          <input
+            type="text"
+            value={newSkillName}
+            onChange={(e) => setNewSkillName(e.target.value)}
+            className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
+            placeholder="e.g. React, Docker, Python"
+            required
+          />
+          <p className="text-[10px] text-slate-400 mt-1">
+            Skill will be auto-categorized under your category tabs based on name matching.
+          </p>
+        </div>
+      </EditModal>
     </section>
   );
 }

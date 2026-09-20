@@ -4,7 +4,7 @@ const taskSchema = new mongoose.Schema({
   title: {
     type: String,
     required: [true, 'Task title is required.'],
-    trim: true // Also trims using Mongoose built-in trim parameter
+    trim: true
   },
   description: {
     type: String,
@@ -22,13 +22,20 @@ const taskSchema = new mongoose.Schema({
     },
     default: 'medium'
   },
+  category: {
+    type: String,
+    enum: ['DSA', 'Leetcode', 'Aptitude', 'Learning', 'Personal', 'Deadline'],
+    default: 'Personal'
+  },
+  dueDate: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Pre-save hook to automatically trim whitespace from the title field (as required by supplementary problems)
 taskSchema.pre('save', function () {
   if (this.title) {
     this.title = this.title.trim();
