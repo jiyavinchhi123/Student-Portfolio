@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const cache = require('./cache');
 const Task = require('./models/Task');
 const Profile = require('./models/Profile');
 const About = require('./models/About');
@@ -220,21 +221,50 @@ const validateTaskId = (req, res, next) => {
   next();
 };
 
-// --- RESTful Endpoints ---
+// --- RESTful Endpoints with In-Memory Caching (node-cache) ---
 
-// GET /tasks - Read all tasks from MongoDB
+// GET /tasks - Read all tasks from MongoDB (with node-cache in-memory caching)
 app.get('/tasks', async (req, res, next) => {
   try {
+    // Optional bypass for benchmarking/testing: ?noCache=true or Cache-Control: no-cache
+    const bypassCache = req.query.noCache === 'true' || req.headers['cache-control'] === 'no-cache';
+
+    if (!bypassCache) {
+      const cachedTasks = cache.get('all_tasks');
+      if (cachedTasks) {
+        res.set('X-Cache', 'HIT');
+        return res.status(200).json(cachedTasks);
+      }
+    }
+
+    // Cache MISS: Query MongoDB
     const tasks = await Task.find().sort({ createdAt: -1 });
+
+    if (!bypassCache) {
+      cache.set('all_tasks', tasks);
+    }
+
+    res.set('X-Cache', bypassCache ? 'BYPASS' : 'MISS');
     res.status(200).json(tasks);
   } catch (err) {
     next(err);
   }
 });
 
-// GET /tasks/:id - Read task by MongoDB ObjectId
+// GET /tasks/:id - Read task by MongoDB ObjectId (with single-task caching)
 app.get('/tasks/:id', validateTaskId, async (req, res, next) => {
   try {
+    const cacheKey = `task_${req.taskId}`;
+    const bypassCache = req.query.noCache === 'true' || req.headers['cache-control'] === 'no-cache';
+
+    if (!bypassCache) {
+      const cachedTask = cache.get(cacheKey);
+      if (cachedTask) {
+        res.set('X-Cache', 'HIT');
+        return res.status(200).json(cachedTask);
+      }
+    }
+
     const task = await Task.findById(req.taskId);
     if (!task) {
       return res.status(404).json({
@@ -242,13 +272,19 @@ app.get('/tasks/:id', validateTaskId, async (req, res, next) => {
         message: `Task with ID ${req.taskId} not found.`
       });
     }
+
+    if (!bypassCache) {
+      cache.set(cacheKey, task);
+    }
+
+    res.set('X-Cache', bypassCache ? 'BYPASS' : 'MISS');
     res.status(200).json(task);
   } catch (err) {
     next(err);
   }
 });
 
-// POST /tasks - Create a task in MongoDB
+// POST /tasks - Create a task in MongoDB and invalidate cache
 app.post('/tasks', async (req, res, next) => {
   try {
     const { title, description, priority, category, dueDate } = req.body;
@@ -269,13 +305,16 @@ app.post('/tasks', async (req, res, next) => {
       dueDate
     });
 
+    // Invalidate the cache after successful write so stale data is never served
+    cache.del('all_tasks');
+
     res.status(201).json(newTask);
   } catch (err) {
     next(err);
   }
 });
 
-// PUT /tasks/:id - Update an existing task in MongoDB
+// PUT /tasks/:id - Update an existing task in MongoDB and invalidate cache
 app.put('/tasks/:id', validateTaskId, async (req, res, next) => {
   try {
     const { title, description, completed, priority, category, dueDate } = req.body;
@@ -304,13 +343,17 @@ app.put('/tasks/:id', validateTaskId, async (req, res, next) => {
       { new: true, runValidators: true }
     );
 
+    // Invalidate both the list cache and the specific single-task cache
+    cache.del('all_tasks');
+    cache.del(`task_${req.taskId}`);
+
     res.status(200).json(updatedTask);
   } catch (err) {
     next(err);
   }
 });
 
-// DELETE /tasks/:id - Delete task from MongoDB
+// DELETE /tasks/:id - Delete task from MongoDB and invalidate cache
 app.delete('/tasks/:id', validateTaskId, async (req, res, next) => {
   try {
     const deletedTask = await Task.findByIdAndDelete(req.taskId);
@@ -320,6 +363,11 @@ app.delete('/tasks/:id', validateTaskId, async (req, res, next) => {
         message: `Task with ID ${req.taskId} not found.`
       });
     }
+
+    // Invalidate both the list cache and the specific single-task cache
+    cache.del('all_tasks');
+    cache.del(`task_${req.taskId}`);
+
     res.status(200).json({
       message: "Task deleted successfully.",
       task: deletedTask
@@ -327,6 +375,42 @@ app.delete('/tasks/:id', validateTaskId, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// --- Debug & Cache Statistics Endpoints (Supplementary Problems) ---
+const getCacheStats = (req, res) => {
+  const stats = cache.getStats();
+  const keys = cache.keys();
+  const total = stats.hits + stats.misses;
+  const hitRatio = total > 0 ? `${((stats.hits / total) * 100).toFixed(2)}%` : '0.00%';
+
+  res.status(200).json({
+    status: "active",
+    hits: stats.hits,
+    misses: stats.misses,
+    totalRequests: total,
+    hitRatio: hitRatio,
+    activeKeysCount: keys.length,
+    activeKeys: keys,
+    stdTTL: 60,
+    memoryStats: {
+      ksize: stats.ksize,
+      vsize: stats.vsize
+    }
+  });
+};
+
+// Expose cache stats via /debug/cache and /tasks/cache/stats
+app.get('/debug/cache', getCacheStats);
+app.get('/tasks/cache/stats', getCacheStats);
+
+// Allow testing cache clearing/flushing
+app.post('/debug/cache/clear', (req, res) => {
+  cache.flushAll();
+  res.status(200).json({
+    message: "Cache flushed successfully.",
+    stats: cache.getStats()
+  });
 });
 
 // Middleware to validate Education Mongoose ID
