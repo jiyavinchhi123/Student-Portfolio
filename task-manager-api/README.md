@@ -10,6 +10,7 @@ A lightweight RESTful backend API designed with Node.js and Express.js, showcasi
 5. [Key Analysis & Lab Questions Answers](#key-analysis--lab-questions-answers)
 6. [In-Memory Caching Architecture & Empirical Evaluation](#in-memory-caching-architecture--empirical-evaluation)
 7. [Asynchronous Background Processing (Node.js Native EventEmitter)](#asynchronous-background-processing-nodejs-native-eventemitter)
+8. [Docker Containerization & Multi-Service Orchestration](#docker-containerization--multi-service-orchestration)
 
 ---
 
@@ -266,5 +267,43 @@ If the notification dispatch logic (e.g., sending SMTP emails, SMS messages, or 
    - Verified via `POST /debug/events/simulate-error`: The error was safely caught and logged without crashing the Express server.
 3. **Simulated 2-Second Delay:**
    - Configurable simulated latency (`simulatedDelayMs = 2000`) inside `listeners.js` demonstrates realistic external notification dispatch without blocking the main thread.
+
+---
+
+## Docker Containerization & Multi-Service Orchestration
+
+The backend REST API is fully containerized using **Docker** and orchestrated alongside the React frontend and MongoDB database using **Docker Compose**.
+
+### Backend Dockerfile (`task-manager-api/Dockerfile`)
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["node", "server.js"]
+```
+
+### Single-Command Orchestration
+From the workspace root directory:
+```bash
+# Build images and start all 3 services (frontend, backend, mongodb)
+docker compose up --build
+
+# Run in background (detached mode)
+docker compose up --build -d
+
+# Stop all services
+docker compose down
+```
+
+### Inter-Container Networking
+Inside Docker Compose, the backend connects to MongoDB using the service name as the hostname:
+```env
+MONGO_URI=mongodb://mongodb:27017/taskmanager
+```
+For complete architectural details, layer caching strategies, and answers to theoretical questions, see the full report: [DOCKER_CONTAINERIZATION_REPORT.md](file:///d:/Portfolio/DOCKER_CONTAINERIZATION_REPORT.md).
+
 
 

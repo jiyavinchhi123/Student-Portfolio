@@ -1,0 +1,70 @@
+# ==============================================================================
+# Full-Stack Task Management & Portfolio Multi-Container Orchestration
+# Services: Frontend (React/Vite) ──► Backend (Express API) ──► Database (MongoDB)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Database Service: Official MongoDB Engine
+  # ----------------------------------------------------------------------------
+  mongodb:
+    image: mongo:6
+    container_name: task-manager-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      # Named volume to persist MongoDB data across container restarts/rebuilds
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------------------
+  # 2. Backend Service: Node.js / Express REST API (with In-Memory Caching & EventEmitter)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./task-manager-api
+      dockerfile: Dockerfile
+    container_name: task-manager-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      # Uses the Docker network service name 'mongodb' instead of localhost
+      - MONGO_URI=mongodb://mongodb:27017/taskmanager
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------------------
+  # 3. Frontend Service: React + Vite Portfolio Dashboard
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-manager-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+# ------------------------------------------------------------------------------
+# Isolated Bridge Network for Inter-Container Communication & Service Discovery
+# ------------------------------------------------------------------------------
+networks:
+  app-network:
+    driver: bridge
+
+# ------------------------------------------------------------------------------
+# Persistent Volume for Database Storage
+# ------------------------------------------------------------------------------
+volumes:
+  mongo-data:
+    driver: local

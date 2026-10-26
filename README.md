@@ -38,11 +38,21 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **Middleware Pipeline**: Strict Content-Type validation, custom request logging, and centralized error handling.
 - **In-Memory Caching (`node-cache`)**: Accelerated read endpoints (`GET /tasks`) by 68.5% with event-driven cache invalidation on mutations (Detailed in [CACHING_PERFORMANCE_REPORT.md](file:///d:/Portfolio/CACHING_PERFORMANCE_REPORT.md)).
 - **Asynchronous Background Processing (Native `EventEmitter`)**: Decoupled notification dispatch and side-effect processing from the HTTP critical path. API returns `201 Created` in ~25 ms, while notifications process non-blockingly on the event loop (Detailed in [EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md](file:///d:/Portfolio/EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md)).
+- **Docker Containerization & Multi-Service Orchestration**: Fully containerized 3-tier architecture (React frontend + Express API + MongoDB) orchestrated via `docker-compose.yml` with isolated bridge networking and persistent volumes (Detailed in [DOCKER_CONTAINERIZATION_REPORT.md](file:///d:/Portfolio/DOCKER_CONTAINERIZATION_REPORT.md)).
 
 ---
 
 ## 🛠️ Installation & Setup
 
+### Option A: Run via Docker Compose (Recommended - Single Command)
+```bash
+docker compose up --build
+```
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:5000`
+- MongoDB: `localhost:27017`
+
+### Option B: Run Locally
 1. **Clone the repository** (if setting up on a new environment).
 2. **Install dependencies**:
    ```bash

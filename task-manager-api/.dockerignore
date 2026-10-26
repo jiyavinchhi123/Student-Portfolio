@@ -1,0 +1,10 @@
+# Exclude node_modules and local secrets from backend build context
+node_modules
+.git
+.gitignore
+.env
+.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+Dockerfile
