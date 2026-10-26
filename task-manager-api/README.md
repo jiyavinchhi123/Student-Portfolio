@@ -8,6 +8,8 @@ A lightweight RESTful backend API designed with Node.js and Express.js, showcasi
 3. [API Endpoints Documentation](#api-endpoints-documentation)
 4. [Middleware Pipeline Architecture](#middleware-pipeline-architecture)
 5. [Key Analysis & Lab Questions Answers](#key-analysis--lab-questions-answers)
+6. [In-Memory Caching Architecture & Empirical Evaluation](#in-memory-caching-architecture--empirical-evaluation)
+7. [Asynchronous Background Processing (Node.js Native EventEmitter)](#asynchronous-background-processing-nodejs-native-eventemitter)
 
 ---
 
@@ -32,26 +34,36 @@ Start the server locally:
 ```bash
 npm start
 ```
+Run automated test suites:
+```bash
+npm run test:cache   # Caching benchmark suite
+npm run test:events  # EventEmitter async non-blocking benchmark suite
+```
 By default, the server runs on **port 5000** (`http://localhost:5000`).
 
 ---
 
 ## API Endpoints Documentation
 
-### Tasks Resource (with In-Memory Caching)
+### Tasks Resource (with In-Memory Caching & EventEmitter)
 
-| Method | Endpoint | Description | Status Codes | Cache Behavior |
+| Method | Endpoint | Description | Status Codes | Event & Cache Behavior |
 | :--- | :--- | :--- | :--- | :--- |
 | **GET** | `/tasks` | Retrieve all tasks | `200 OK` | Cached in-memory (TTL: 60s, `X-Cache: HIT/MISS`) |
 | **GET** | `/tasks/:id` | Retrieve a specific task by ObjectId | `200 OK`, `400 Bad Request`, `404 Not Found` | Cached individually (`task_<id>`) |
-| **POST** | `/tasks` | Create a new task (body requires `title`) | `201 Created`, `400 Bad Request`, `415 Unsupported Media Type` | Invalidates `all_tasks` cache |
+| **POST** | `/tasks` | Create a new task (body: `title`, `assignedUser`, etc.) | `201 Created`, `400 Bad Request`, `415 Unsupported Media Type` | Invalidates cache; emits `task-created` event asynchronously |
 | **PUT** | `/tasks/:id` | Update an existing task properties | `200 OK`, `400 Bad Request`, `404 Not Found`, `415 Unsupported Media Type` | Invalidates `all_tasks` & `task_<id>` |
-| **DELETE** | `/tasks/:id` | Delete a task | `200 OK`, `400 Bad Request`, `404 Not Found` | Invalidates `all_tasks` & `task_<id>` |
+| **DELETE** | `/tasks/:id` | Delete a task | `200 OK`, `400 Bad Request`, `404 Not Found` | Invalidates cache; emits `task-deleted` event asynchronously |
 
-### Cache & Debug Endpoints
+### Background EventEmitter & Debug Endpoints
 
 | Method | Endpoint | Description | Status Codes |
 | :--- | :--- | :--- | :--- |
+| **GET** | `/tasks/events/log` | Inspect live background notification log feed & timing | `200 OK` |
+| **GET** | `/debug/events` | Alias for background EventEmitter audit logs | `200 OK` |
+| **POST** | `/debug/events/simulate-error` | Deliberately triggers an error inside an event listener to prove safe error handling | `200 OK` |
+| **POST** | `/debug/events/config` | Configure simulated background listener delay (e.g. 2000ms) | `200 OK` |
+| **POST** | `/debug/events/clear` | Clear recent in-memory event buffer | `200 OK` |
 | **GET** | `/debug/cache` | Inspect cache metrics (hits, misses, hit ratio, active keys) | `200 OK` |
 | **GET** | `/tasks/cache/stats` | Alias for cache inspection and performance monitoring | `200 OK` |
 | **POST** | `/debug/cache/clear` | Clear/flush in-memory cache for empirical benchmarking | `200 OK` |
@@ -165,4 +177,94 @@ Measured across 5 repeated requests using the automated benchmark harness (`node
   3. However, **Instance B** and **Instance C** still retain the old task in their separate memory heaps!
   4. Subsequent `GET /tasks` requests routed to Instance B or C will return **stale data**.
 - **Production Solution:** Distributed caching stores such as **Redis** or **Memcached**, where all application server instances share a centralized, high-speed in-memory data store.
+
+---
+
+## Asynchronous Background Processing (Node.js Native EventEmitter)
+
+### 1. Architecture & Execution Flow Diagram
+
+```text
+Client (Postman / Browser)
+         │
+         │ 1. POST /tasks (JSON payload)
+         ▼
+┌─────────────────────────────────┐
+│     Express Route Pipeline      │
+│  - Parse JSON body              │
+│  - Validate schema              │
+│  - Save task to MongoDB (await) │
+└────────────────┬────────────────┘
+                 │
+                 ├──► 2. Invalidate In-Memory Cache ('all_tasks')
+                 │
+                 ├──► 3. API Responds IMMEDIATELY (201 Created)  ⚡ ~20ms
+                 │       (Client receives task data without waiting)
+                 │
+                 ▼
+     taskEvents.emit('task-created', taskData)
+                 │
+                 ▼ (Queued on Node.js Event Loop)
+┌────────────────────────────────────────────────────────┐
+│              Background Event Listeners                │
+│  - Handled asynchronously after response is sent       │
+│  - Simulates notification dispatch (2000ms delay)      │
+│  - Logs: Task Title, Timestamp, Assigned User          │
+│  - Executes without blocking main thread I/O           │
+└────────────────────────────────────────────────────────┘
+```
+
+### 2. Empirical Execution & Timestamp Evidence (Automated Benchmark)
+
+Verified using `node test_events.js` against the live Node/Express/MongoDB server:
+
+| Execution Point | Recorded Timestamp | Elapsed Delay | Operational State |
+| :--- | :--- | :--- | :--- |
+| **Client HTTP Request Sent** | `2026-10-26T16:46:41.099Z` | `0 ms` | Client initiates `POST /tasks` |
+| **API Response Transmitted (201)** | `2026-10-26T16:46:41.124Z` | `+25.23 ms` | **Client receives 201 Created immediately** |
+| **Background Listener Queued** | `2026-10-26T16:46:41.125Z` | `+26.00 ms` | Event received on EventEmitter |
+| **Background Notification Complete** | `2026-10-26T16:46:43.130Z` | `+2006 ms` | **Notification finished in background** |
+
+> **Key Takeaway:** The client experienced a total round-trip latency of only **25.23 ms**, while the notification side effect took **2000 ms** to execute in the background. The user was saved nearly 2 seconds of waiting time per task creation!
+
+---
+
+### 3. Key Analysis & Theoretical Answers
+
+#### Question 1: Why does emitting an event not block the API response, even though both run on the same Node.js process?
+In Node.js, `taskEvents.emit()` is invoked synchronously to trigger registered callbacks. However, because our listener delegates heavy I/O operations (or artificial delays) through asynchronous APIs like `setTimeout()`, Promise chains, or native I/O workers, Node.js offloads the callback to the **libuv event loop timer queue**. 
+
+Furthermore, because `res.status(201).json(newTask)` is executed **before** or concurrently with asynchronous delegation, the HTTP response headers and JSON payload are immediately written to the OS TCP socket buffer. Express flushes the response to the client immediately, allowing the client to continue without waiting for the background timer/I/O phase to complete.
+
+#### Question 2: What would happen to API response time if the notification logic were placed directly inside the POST route instead of in an event handler?
+If the notification dispatch logic (e.g., sending SMTP emails, SMS messages, or webhooks with a 2-second delay) were written directly inside the `POST /tasks` controller:
+1. **Severe Latency Spike:** The route handler would have to `await sendNotification()`. The client turnaround latency would jump from **~25 ms to over 2025 ms** (an 80x latency degradation).
+2. **Reduced Server Throughput:** The single Node.js thread would hold each HTTP connection open for 2 extra seconds, rapidly exhausting available socket descriptors and memory under high concurrent traffic.
+3. **Coupled Failure Domains:** If the notification service timed out or threw an unhandled network error, the entire task creation transaction would fail, even though the task had already been successfully written to MongoDB.
+
+#### Question 3: Why is EventEmitter a reasonable choice for this scale of application, but not for a production system handling millions of events per day?
+- **Why it is great for this scale:**
+  - Built directly into Node.js core (`events` module) with **zero external dependencies**.
+  - Extremely lightweight with negligible RAM overhead.
+  - Decouples concerns cleanly within a single monolith application.
+- **Why it fails at enterprise scale (Millions of events/day):**
+  1. **Volatile & In-Memory (No Persistence):** EventEmitter events live entirely in the Node.js V8 process heap. If the server crashes, restarts, or runs out of memory, all queued and in-flight events are permanently lost with no retry mechanism.
+  2. **Single-Process Bound:** EventEmitter cannot broadcast across multiple clustered processes or servers behind a load balancer. If Instance A emits an event, listeners on Instance B will never receive it.
+  3. **No Backpressure or Rate Limiting:** A burst of 100,000 requests will emit 100,000 concurrent callbacks on the event loop, causing event loop lag, CPU starvation, and memory exhaustion.
+  4. **Production Solution:** Enterprise distributed systems use dedicated persistent message brokers such as **RabbitMQ, Apache Kafka, or Redis Streams / BullMQ**, which provide disk persistence, horizontal scaling, guaranteed at-least-once delivery, dead-letter queues, and consumer worker pools.
+
+---
+
+### 4. Supplementary Solutions Implemented
+
+1. **`task-deleted` Event Listener:**
+   - Dedicated listener registered in `listeners.js` that logs a structured deletion audit message including task ID, title, timestamp, and assigned user.
+   - Emitted immediately after successful deletion in `DELETE /tasks/:id`.
+2. **Safe EventEmitter Error Trap:**
+   - In Node.js, emitting an `'error'` event without an active listener throws an unhandled exception that terminates the process.
+   - We registered a base error trap: `taskEvents.on('error', (err) => { ... })`.
+   - Verified via `POST /debug/events/simulate-error`: The error was safely caught and logged without crashing the Express server.
+3. **Simulated 2-Second Delay:**
+   - Configurable simulated latency (`simulatedDelayMs = 2000`) inside `listeners.js` demonstrates realistic external notification dispatch without blocking the main thread.
+
 

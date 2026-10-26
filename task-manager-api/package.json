@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test:cache": "node test_cache.js",
+    "test:events": "node test_events.js"
   },
   "keywords": [
     "express",

@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const cache = require('./cache');
+const taskEvents = require('./events');
+const listeners = require('./listeners');
 const Task = require('./models/Task');
 const Profile = require('./models/Profile');
 const About = require('./models/About');
@@ -287,7 +289,7 @@ app.get('/tasks/:id', validateTaskId, async (req, res, next) => {
 // POST /tasks - Create a task in MongoDB and invalidate cache
 app.post('/tasks', async (req, res, next) => {
   try {
-    const { title, description, priority, category, dueDate } = req.body;
+    const { title, description, priority, category, dueDate, assignedUser } = req.body;
 
     // Explicit title presence check (Mongoose schema also catches this, but this gives a friendly error)
     if (!title || typeof title !== 'string' || title.trim() === '') {
@@ -302,13 +304,23 @@ app.post('/tasks', async (req, res, next) => {
       description,
       priority,
       category,
-      dueDate
+      dueDate,
+      assignedUser: assignedUser || 'Jiya Vinchhi'
     });
 
     // Invalidate the cache after successful write so stale data is never served
     cache.del('all_tasks');
 
+    // Pedagogical Proof Point: Respond to the client immediately before event listener completes
+    const apiResponseTime = new Date().toISOString();
+    console.log(`[API] Response sent (201 Created) at ${apiResponseTime} for Task: "${newTask.title}"`);
     res.status(201).json(newTask);
+
+    // Asynchronous background event emission (Non-blocking notification)
+    taskEvents.emit('task-created', {
+      task: newTask,
+      apiResponseTime
+    });
   } catch (err) {
     next(err);
   }
@@ -317,7 +329,7 @@ app.post('/tasks', async (req, res, next) => {
 // PUT /tasks/:id - Update an existing task in MongoDB and invalidate cache
 app.put('/tasks/:id', validateTaskId, async (req, res, next) => {
   try {
-    const { title, description, completed, priority, category, dueDate } = req.body;
+    const { title, description, completed, priority, category, dueDate, assignedUser } = req.body;
 
     // Perform lookup first to ensure it exists
     const task = await Task.findById(req.taskId);
@@ -336,6 +348,7 @@ app.put('/tasks/:id', validateTaskId, async (req, res, next) => {
     if (priority !== undefined) updates.priority = priority;
     if (category !== undefined) updates.category = category;
     if (dueDate !== undefined) updates.dueDate = dueDate;
+    if (assignedUser !== undefined) updates.assignedUser = assignedUser;
 
     const updatedTask = await Task.findByIdAndUpdate(
       req.taskId,
@@ -368,9 +381,18 @@ app.delete('/tasks/:id', validateTaskId, async (req, res, next) => {
     cache.del('all_tasks');
     cache.del(`task_${req.taskId}`);
 
+    // Respond immediately before background audit listener finishes
+    const apiResponseTime = new Date().toISOString();
+    console.log(`[API] Response sent (200 OK) at ${apiResponseTime} for Task deletion: "${deletedTask.title}"`);
     res.status(200).json({
       message: "Task deleted successfully.",
       task: deletedTask
+    });
+
+    // Supplementary Problem: Asynchronous background event emission for task deletion
+    taskEvents.emit('task-deleted', {
+      task: deletedTask,
+      apiResponseTime
     });
   } catch (err) {
     next(err);
@@ -410,6 +432,62 @@ app.post('/debug/cache/clear', (req, res) => {
   res.status(200).json({
     message: "Cache flushed successfully.",
     stats: cache.getStats()
+  });
+});
+
+// --- EventEmitter Background Processing & Event Log Endpoints ---
+
+// Inspect recent background notification logs & timing comparison
+const getEventLogs = (req, res) => {
+  res.status(200).json({
+    status: "active",
+    subsystem: "Node.js Native EventEmitter (events)",
+    simulatedDelayMs: listeners.getSimulatedDelayMs(),
+    totalRecordedEvents: listeners.getEventHistory().length,
+    events: listeners.getEventHistory()
+  });
+};
+
+app.get('/tasks/events/log', getEventLogs);
+app.get('/debug/events', getEventLogs);
+
+// Supplementary Problem: Safely simulate an error inside an event listener to test the error listener
+app.post('/debug/events/simulate-error', (req, res) => {
+  const apiResponseTime = new Date().toISOString();
+  console.log(`[API] Triggered simulated background event error test at ${apiResponseTime}`);
+  res.status(200).json({
+    message: "Simulated error event emitted. Check server logs and /debug/events to confirm the server did not crash.",
+    apiResponseTime
+  });
+
+  taskEvents.emit('task-error-test', {
+    message: req.body?.message || "Deliberately simulated background listener error.",
+    apiResponseTime
+  });
+});
+
+// Configure simulated delay (e.g., 0ms, 500ms, 2000ms) for testing
+app.post('/debug/events/config', (req, res) => {
+  const { delayMs } = req.body;
+  if (typeof delayMs === 'number' && delayMs >= 0) {
+    listeners.setSimulatedDelayMs(delayMs);
+    return res.status(200).json({
+      message: `Simulated listener delay updated to ${delayMs}ms.`,
+      simulatedDelayMs: delayMs
+    });
+  }
+  res.status(400).json({
+    error: "Bad Request",
+    message: "delayMs must be a non-negative number."
+  });
+});
+
+// Clear background event history
+app.post('/debug/events/clear', (req, res) => {
+  listeners.clearEventHistory();
+  res.status(200).json({
+    message: "Event history cleared successfully.",
+    events: []
   });
 });
 

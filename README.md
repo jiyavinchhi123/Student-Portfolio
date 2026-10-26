@@ -34,6 +34,11 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **Star Counts & Metadata**: Displays stargazers count with a yellow star icon and the repository's primary programming language badge.
 - **Sort Ordering**: Repositories are automatically sorted by star count descending, highlighting the most popular projects first.
 
+### 4. Task Management RESTful API & Backend Systems
+- **Middleware Pipeline**: Strict Content-Type validation, custom request logging, and centralized error handling.
+- **In-Memory Caching (`node-cache`)**: Accelerated read endpoints (`GET /tasks`) by 68.5% with event-driven cache invalidation on mutations (Detailed in [CACHING_PERFORMANCE_REPORT.md](file:///d:/Portfolio/CACHING_PERFORMANCE_REPORT.md)).
+- **Asynchronous Background Processing (Native `EventEmitter`)**: Decoupled notification dispatch and side-effect processing from the HTTP critical path. API returns `201 Created` in ~25 ms, while notifications process non-blockingly on the event loop (Detailed in [EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md](file:///d:/Portfolio/EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md)).
+
 ---
 
 ## 🛠️ Installation & Setup

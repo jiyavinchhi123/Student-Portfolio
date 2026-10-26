@@ -12,7 +12,12 @@ import {
   FiSearch,
   FiCheckSquare,
   FiAlertCircle,
-  FiGrid
+  FiGrid,
+  FiActivity,
+  FiClock,
+  FiUser,
+  FiZap,
+  FiShield
 } from "react-icons/fi";
 
 const SERVER_URL = "http://localhost:5000";
@@ -28,6 +33,11 @@ export default function TaskManagerDemo() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [assignedUser, setAssignedUser] = useState("Jiya Vinchhi");
+  
+  // Tab & Background EventEmitter State
+  const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "events"
+  const [eventLogs, setEventLogs] = useState([]);
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +52,19 @@ export default function TaskManagerDemo() {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  // Fetch recent background events from Express API
+  const fetchEventLogs = async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/debug/events`, { signal: AbortSignal.timeout(2000) });
+      if (response.ok) {
+        const data = await response.json();
+        setEventLogs(data.events || []);
+      }
+    } catch (err) {
+      // Backend may be offline in fallback mode
+    }
+  };
+
   // Initial Check for Backend Connection
   const checkBackend = async (showPingNotification = false) => {
     setCheckingConnection(true);
@@ -52,6 +75,7 @@ export default function TaskManagerDemo() {
         setUseFallback(false);
         const data = await response.json();
         setTasks(data);
+        fetchEventLogs();
         if (showPingNotification) {
           showToast("Connected to live MongoDB server!", "success");
         }
@@ -95,7 +119,12 @@ export default function TaskManagerDemo() {
     if (!title.trim()) return;
 
     setLoading(true);
-    const bodyData = { title, description, priority };
+    const bodyData = { 
+      title, 
+      description, 
+      priority, 
+      assignedUser: assignedUser.trim() || "Jiya Vinchhi" 
+    };
 
     if (useFallback) {
       const newTask = {
@@ -104,11 +133,33 @@ export default function TaskManagerDemo() {
         description: description.trim(),
         completed: false,
         priority,
+        assignedUser: bodyData.assignedUser,
         createdAt: new Date().toISOString()
       };
       const updated = [newTask, ...tasks];
       setTasks(updated);
       localStorage.setItem("portfolio_tasks", JSON.stringify(updated));
+      
+      // Fallback simulated background event
+      const apiTime = new Date().toISOString();
+      setTimeout(() => {
+        setEventLogs(prev => [
+          {
+            id: `evt_${Date.now()}`,
+            eventType: 'task-created',
+            taskTitle: newTask.title,
+            assignedUser: newTask.assignedUser,
+            apiResponseTime: apiTime,
+            handlerFinishTime: new Date().toISOString(),
+            elapsedFromApiMs: 1500,
+            delayMs: 1500,
+            status: 'completed',
+            message: `(Fallback) Notification dispatched for "${newTask.title}"`
+          },
+          ...prev
+        ]);
+      }, 1500);
+
       showToast("Task added locally (Fallback mode)!");
       setLoading(false);
     } else {
@@ -121,7 +172,10 @@ export default function TaskManagerDemo() {
         const data = await response.json();
         if (response.ok) {
           setTasks(prev => [data, ...prev]);
-          showToast("Task created in MongoDB database!");
+          showToast(`Task created! Background notification queued for ${bodyData.assignedUser}`);
+          fetchEventLogs();
+          // Poll again after simulated delay finishes
+          setTimeout(fetchEventLogs, 2300);
         } else {
           showToast(data.message || "Failed to create task on server.", "error");
         }
@@ -171,10 +225,28 @@ export default function TaskManagerDemo() {
   // Delete Task
   const handleDeleteTask = async (id) => {
     if (useFallback) {
+      const target = tasks.find(t => t.id === id);
       const updatedTasks = tasks.filter(t => t.id !== id);
       setTasks(updatedTasks);
       localStorage.setItem("portfolio_tasks", JSON.stringify(updatedTasks));
       showToast("Task deleted from local workspace.");
+      if (target) {
+        setEventLogs(prev => [
+          {
+            id: `evt_${Date.now()}`,
+            eventType: 'task-deleted',
+            taskTitle: target.title,
+            assignedUser: target.assignedUser || 'Jiya Vinchhi',
+            apiResponseTime: new Date().toISOString(),
+            handlerFinishTime: new Date().toISOString(),
+            elapsedFromApiMs: 10,
+            delayMs: 0,
+            status: 'completed',
+            message: `(Fallback) Deletion audit completed for "${target.title}"`
+          },
+          ...prev
+        ]);
+      }
     } else {
       try {
         const response = await fetch(`${SERVER_URL}/tasks/${id}`, {
@@ -184,12 +256,51 @@ export default function TaskManagerDemo() {
         if (response.ok) {
           setTasks(prev => prev.filter(t => t._id !== id && t.id !== id));
           showToast("Task removed from MongoDB.");
+          fetchEventLogs();
+          setTimeout(fetchEventLogs, 800);
         } else {
           showToast(data.message || "Failed to delete task.", "error");
         }
       } catch (err) {
         showToast("Error connecting to server.", "error");
       }
+    }
+  };
+
+  // Simulate Safe Error in EventEmitter
+  const handleSimulateError = async () => {
+    if (!backendOnline) {
+      showToast("Backend must be online to test safe EventEmitter error handling.", "warning");
+      return;
+    }
+    try {
+      const res = await fetch(`${SERVER_URL}/debug/events/simulate-error`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "UI Triggered Listener Exception Test" })
+      });
+      if (res.ok) {
+        showToast("Safe error emitted! Server process handled exception safely.", "success");
+        fetchEventLogs();
+      }
+    } catch (e) {
+      showToast("Failed to communicate with debug endpoint.", "error");
+    }
+  };
+
+  // Clear Event History Buffer
+  const handleClearEvents = async () => {
+    if (!backendOnline) {
+      setEventLogs([]);
+      showToast("Event stream cleared.");
+      return;
+    }
+    try {
+      await fetch(`${SERVER_URL}/debug/events/clear`, { method: "POST" });
+      setEventLogs([]);
+      showToast("Event buffer cleared on server.");
+    } catch (e) {
+      showToast("Failed to clear event logs.", "error");
     }
   };
 
@@ -369,6 +480,20 @@ export default function TaskManagerDemo() {
               </div>
 
               <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiUser className="text-blue-500" /> Assigned User (Event Payload)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Jiya Vinchhi"
+                  value={assignedUser}
+                  onChange={(e) => setAssignedUser(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priority Label</label>
                 <select
                   value={priority}
@@ -387,142 +512,313 @@ export default function TaskManagerDemo() {
                 disabled={loading || !title.trim()}
                 className="w-full flex items-center justify-center gap-1.5 py-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/10"
               >
-                <FiPlus /> Create Task
+                <FiPlus /> Create Task (Triggers Event)
               </button>
             </form>
           </div>
-        </div>
 
-        {/* RIGHT COLUMN: Task List Dashboard (Grid: 8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          
-          {/* Filters Toolbar */}
-          <div className="p-4 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full sm:max-w-xs">
-              <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                <FiSearch />
-              </span>
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
+          {/* Architecture Badge Card */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 border border-blue-500/20 backdrop-blur-md flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              <FiZap className="text-amber-500" /> Async EventEmitter Active
             </div>
-            
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-              </select>
-
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="all">All Priorities</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              API responds with <strong>201 Created</strong> immediately in ~20ms, while background listeners dispatch notifications asynchronously after response transmission.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-blue-500/10 text-[11px] font-mono text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Non-blocking Node.js native events
+              </span>
+              <span className="text-blue-500 font-semibold">{eventLogs.length} events logged</span>
             </div>
           </div>
+        </div>
 
-          {/* Task Feed Container */}
-          <div className="flex flex-col gap-3 max-h-[550px] overflow-y-auto pr-1">
-            <AnimatePresence initial={false}>
-              {filteredTasks.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center py-16 p-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-slate-400"
+        {/* RIGHT COLUMN: Tabbed Task Dashboard & Event Stream (Grid: 8 cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          
+          {/* Tab Navigation Switcher */}
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab("tasks")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+                  activeTab === "tasks"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <FiGrid className="text-sm" /> Tasks Workspace ({filteredTasks.length})
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("events");
+                  fetchEventLogs();
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+                  activeTab === "events"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <FiActivity className="text-sm" /> Async Event Stream ({eventLogs.length})
+              </button>
+            </div>
+
+            {activeTab === "events" && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSimulateError}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition border border-red-500/20"
+                  title="Test safe EventEmitter error handler without crashing server"
                 >
-                  <FiGrid className="text-3xl mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No tasks matched your workspace filters.</p>
-                </motion.div>
-              ) : (
-                filteredTasks.map((task) => {
-                  const taskId = task._id || task.id;
-                  return (
+                  <FiShield className="text-xs" /> Simulate Safe Error
+                </button>
+                <button
+                  onClick={fetchEventLogs}
+                  className="p-1.5 text-xs rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition"
+                  title="Refresh event stream"
+                >
+                  <FiRotateCw />
+                </button>
+                <button
+                  onClick={handleClearEvents}
+                  className="p-1.5 text-xs rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition"
+                  title="Clear event history"
+                >
+                  <FiTrash2 />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {activeTab === "tasks" ? (
+            <>
+              {/* Filters Toolbar */}
+              <div className="p-4 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:max-w-xs">
+                  <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <FiSearch />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                  </select>
+
+                  <select
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                    className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Priorities</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Task Feed Container */}
+              <div className="flex flex-col gap-3 max-h-[550px] overflow-y-auto pr-1">
+                <AnimatePresence initial={false}>
+                  {filteredTasks.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center py-16 p-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-slate-400"
+                    >
+                      <FiGrid className="text-3xl mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No tasks matched your workspace filters.</p>
+                    </motion.div>
+                  ) : (
+                    filteredTasks.map((task) => {
+                      const taskId = task._id || task.id;
+                      return (
+                        <motion.div
+                          layout
+                          key={taskId}
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 group hover:shadow-lg dark:hover:bg-white/10 transition-all duration-300 hover:border-blue-500/50"
+                        >
+                          <div className="flex items-start gap-4 flex-grow">
+                            <button
+                              onClick={() => handleToggleComplete(task)}
+                              className={`mt-1 w-6 h-6 rounded-full border flex items-center justify-center text-xs shrink-0 transition-all duration-300 ${
+                                task.completed
+                                  ? "bg-blue-600 border-blue-600 text-white"
+                                  : "border-slate-300 dark:border-white/20 text-transparent hover:border-blue-500 hover:scale-105"
+                              }`}
+                            >
+                              <FiCheck className="stroke-[3]" />
+                            </button>
+                            
+                            <div className="flex-grow">
+                              <span className={`text-base font-bold transition-all duration-300 ${
+                                task.completed 
+                                  ? "line-through text-slate-400 dark:text-slate-500" 
+                                  : "text-slate-900 dark:text-white"
+                              }`}>
+                                {task.title}
+                              </span>
+                              
+                              {task.description && (
+                                <p className={`text-sm mt-1 leading-relaxed ${
+                                  task.completed 
+                                    ? "text-slate-400/80 dark:text-slate-600" 
+                                    : "text-slate-500 dark:text-slate-400"
+                                }`}>
+                                  {task.description}
+                                </p>
+                              )}
+
+                              <div className="flex flex-wrap gap-2 items-center mt-3">
+                                {task.priority && (
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide border ${
+                                    task.priority === 'high' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                    task.priority === 'medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                    'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                                  }`}>
+                                    {task.priority} Priority
+                                  </span>
+                                )}
+
+                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-md font-mono text-[9px] flex items-center gap-1 font-semibold">
+                                  <FiUser className="text-[10px]" /> {task.assignedUser || 'Jiya Vinchhi'}
+                                </span>
+                                
+                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 rounded-md font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                                  REF: {taskId}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteTask(taskId)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all duration-300 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 focus:opacity-100 shrink-0"
+                            title="Delete task (emits task-deleted event)"
+                          >
+                            <FiTrash2 className="text-base" />
+                          </button>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </AnimatePresence>
+              </div>
+            </>
+          ) : (
+            /* ASYNC EVENT STREAM VIEW */
+            <div className="flex flex-col gap-4">
+              <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 text-xs text-slate-600 dark:text-slate-300 flex items-start gap-3">
+                <FiZap className="text-blue-500 text-lg shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    Event-Driven Asynchronous Non-Blocking Architecture
+                  </span>
+                  <p className="leading-relaxed">
+                    When tasks are created, the HTTP API sends <strong>201 Created</strong> in ~20ms, immediately decoupling execution. The notification listener executes in the background ~2000ms later on Node's Event Loop without delaying client I/O.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 max-h-[550px] overflow-y-auto pr-1">
+                {eventLogs.length === 0 ? (
+                  <div className="text-center py-16 p-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-slate-400">
+                    <FiActivity className="text-3xl mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No background events recorded yet.</p>
+                    <p className="text-xs text-slate-400 mt-1">Create a new task or click "Simulate Safe Error" to generate events!</p>
+                  </div>
+                ) : (
+                  eventLogs.map((evt) => (
                     <motion.div
                       layout
-                      key={taskId}
-                      initial={{ opacity: 0, y: 15 }}
+                      key={evt.id}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 group hover:shadow-lg dark:hover:bg-white/10 transition-all duration-300 hover:border-blue-500/50"
+                      className={`p-4 rounded-2xl border backdrop-blur-md flex flex-col gap-3 transition-all ${
+                        evt.eventType === 'task-error'
+                          ? 'bg-red-500/5 border-red-500/20'
+                          : evt.eventType === 'task-deleted'
+                          ? 'bg-purple-500/5 border-purple-500/20'
+                          : 'bg-white/80 dark:bg-white/5 border-slate-200 dark:border-white/10'
+                      }`}
                     >
-                      <div className="flex items-start gap-4 flex-grow">
-                        <button
-                          onClick={() => handleToggleComplete(task)}
-                          className={`mt-1 w-6 h-6 rounded-full border flex items-center justify-center text-xs shrink-0 transition-all duration-300 ${
-                            task.completed
-                              ? "bg-blue-600 border-blue-600 text-white"
-                              : "border-slate-300 dark:border-white/20 text-transparent hover:border-blue-500 hover:scale-105"
-                          }`}
-                        >
-                          <FiCheck className="stroke-[3]" />
-                        </button>
-                        
-                        <div className="flex-grow">
-                          <span className={`text-base font-bold transition-all duration-300 ${
-                            task.completed 
-                              ? "line-through text-slate-400 dark:text-slate-500" 
-                              : "text-slate-900 dark:text-white"
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
+                            evt.eventType === 'task-error'
+                              ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                              : evt.eventType === 'task-deleted'
+                              ? 'bg-purple-500/10 text-purple-500 border-purple-500/20'
+                              : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                           }`}>
-                            {task.title}
+                            {evt.eventType}
                           </span>
-                          
-                          {task.description && (
-                            <p className={`text-sm mt-1 leading-relaxed ${
-                              task.completed 
-                                ? "text-slate-400/80 dark:text-slate-600" 
-                                : "text-slate-500 dark:text-slate-400"
-                            }`}>
-                              {task.description}
-                            </p>
-                          )}
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">
+                            {evt.taskTitle}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {evt.status}
+                        </span>
+                      </div>
 
-                          <div className="flex flex-wrap gap-2 items-center mt-3">
-                            {task.priority && (
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide border ${
-                                task.priority === 'high' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                task.priority === 'medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                'bg-slate-500/10 text-slate-500 border-slate-500/20'
-                              }`}>
-                                {task.priority} Priority
-                              </span>
-                            )}
-                            
-                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 rounded-md font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                              REF: {taskId}
-                            </span>
-                          </div>
+                      <div className="grid sm:grid-cols-2 gap-2 text-xs font-mono bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-slate-200/50 dark:border-white/5">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                            <FiClock className="text-emerald-500" /> API Response Sent (Instant)
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300 text-[11px] truncate">
+                            {evt.apiResponseTime ? evt.apiResponseTime.split('T')[1].replace('Z','') : 'Immediate'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                            <FiZap className="text-blue-500" /> Background Listener Executed
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300 text-[11px] truncate">
+                            {evt.handlerFinishTime ? evt.handlerFinishTime.split('T')[1].replace('Z','') : 'In Progress'} 
+                            <span className="ml-1 text-blue-500 font-bold">(+{evt.elapsedFromApiMs}ms)</span>
+                          </span>
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteTask(taskId)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all duration-300 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 focus:opacity-100 shrink-0"
-                        title="Delete task"
-                      >
-                        <FiTrash2 className="text-base" />
-                      </button>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                          <FiUser className="text-slate-400" /> Assigned: <strong>{evt.assignedUser}</strong>
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {evt.message || `Processed after ${evt.delayMs}ms background delay`}
+                        </span>
+                      </div>
                     </motion.div>
-                  );
-                })
-              )}
-            </AnimatePresence>
-          </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
