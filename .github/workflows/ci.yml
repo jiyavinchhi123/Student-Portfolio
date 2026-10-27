@@ -1,0 +1,75 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Linting, Code Quality & Frontend Build Validation (Supplementary)
+  # ----------------------------------------------------------------------------
+  lint-and-validate:
+    name: Code Quality & Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Root Dependencies
+        run: npm install
+
+      - name: Verify Frontend Production Build
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Backend API Automated Testing with MongoDB Service Container
+  # ----------------------------------------------------------------------------
+  build-and-test:
+    name: Backend API Automated Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+
+    # Service container for live MongoDB database integration during CI tests
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Root Dependencies
+        run: npm install
+
+      - name: Install Backend Test Dependencies
+        working-directory: ./task-manager-api
+        run: npm install
+
+      - name: Run Backend Automated Test Suite (Jest + Supertest)
+        working-directory: ./task-manager-api
+        env:
+          PORT: 5000
+          MONGO_URI: mongodb://localhost:27017/taskmanager
+          NODE_ENV: test
+        run: npm test
+
+      - name: Verify Root npm test Command
+        env:
+          PORT: 5000
+          MONGO_URI: mongodb://localhost:27017/taskmanager
+          NODE_ENV: test
+        run: npm test

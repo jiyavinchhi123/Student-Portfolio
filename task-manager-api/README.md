@@ -1,16 +1,20 @@
 # Task Manager RESTful API
 
-A lightweight RESTful backend API designed with Node.js and Express.js, showcasing a robust middleware pipeline, input validation, custom logging, and centralized error handling.
+[![CI Pipeline](https://github.com/jiyavinchhi123/Student-Portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/jiyavinchhi123/Student-Portfolio/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-7%20Passed-brightgreen)](file:///d:/Portfolio/task-manager-api/tests/api.test.js)
+
+A lightweight RESTful backend API designed with Node.js and Express.js, showcasing a robust middleware pipeline, input validation, custom logging, centralized error handling, and automated CI/CD.
 
 ## Table of Contents
 1. [Prerequisites & Installation](#prerequisites--installation)
-2. [Running the Server](#running-the-server)
+2. [Running the Server & Automated Tests](#running-the-server--automated-tests)
 3. [API Endpoints Documentation](#api-endpoints-documentation)
 4. [Middleware Pipeline Architecture](#middleware-pipeline-architecture)
 5. [Key Analysis & Lab Questions Answers](#key-analysis--lab-questions-answers)
 6. [In-Memory Caching Architecture & Empirical Evaluation](#in-memory-caching-architecture--empirical-evaluation)
 7. [Asynchronous Background Processing (Node.js Native EventEmitter)](#asynchronous-background-processing-nodejs-native-eventemitter)
 8. [Docker Containerization & Multi-Service Orchestration](#docker-containerization--multi-service-orchestration)
+9. [CI/CD Automated Testing Pipeline (GitHub Actions)](#cicd-automated-testing-pipeline-github-actions)
 
 ---
 
@@ -29,7 +33,7 @@ Make sure you have [Node.js](https://nodejs.org/) (version 18 or above) and npm 
 
 ---
 
-## Running the Server
+## Running the Server & Automated Tests
 
 Start the server locally:
 ```bash
@@ -37,6 +41,7 @@ npm start
 ```
 Run automated test suites:
 ```bash
+npm test             # Run Jest + Supertest CI test suite (7 tests)
 npm run test:cache   # Caching benchmark suite
 npm run test:events  # EventEmitter async non-blocking benchmark suite
 ```
@@ -304,6 +309,58 @@ Inside Docker Compose, the backend connects to MongoDB using the service name as
 MONGO_URI=mongodb://mongodb:27017/taskmanager
 ```
 For complete architectural details, layer caching strategies, and answers to theoretical questions, see the full report: [DOCKER_CONTAINERIZATION_REPORT.md](file:///d:/Portfolio/DOCKER_CONTAINERIZATION_REPORT.md).
+
+---
+
+## CI/CD Automated Testing Pipeline (GitHub Actions)
+
+An automated Continuous Integration (CI) pipeline is configured via [`.github/workflows/ci.yml`](file:///d:/Portfolio/.github/workflows/ci.yml) that automatically executes on every push to `main` and on pull requests targeting `main`.
+
+### Workflow Pipeline Architecture
+
+```text
+git push origin main
+        │
+        ▼
+GitHub Actions Trigger (on: push, pull_request)
+        │
+        ├──► Job 1: Code Quality & Frontend Build (lint-and-validate)
+        │     - Checkout code (actions/checkout@v4)
+        │     - Setup Node.js 18 (actions/setup-node@v4)
+        │     - Install dependencies (npm install)
+        │     - Validate production build (npm run build)
+        │
+        └──► Job 2: Backend API Automated Tests (build-and-test)
+              - Spins up MongoDB 6.0 Service Container (port 27017)
+              - Runs Jest + Supertest automated suite (npm test)
+              - Verifies all 7 API endpoints and error handlers
+              - Emits GitHub status check (Green checkmark or Red X)
+```
+
+### Automated Test Suite (`tests/api.test.js`)
+
+Written with **Jest** and **Supertest** to test critical REST endpoints, middleware, and resilience:
+- `GET /tasks`: Verifies status `200 OK` and returns JSON task array.
+- `GET /debug/cache`: Verifies in-memory cache statistics and `status: active`.
+- `GET /tasks/events/log`: Verifies native `EventEmitter` status and event history.
+- `POST /tasks` (Content-Type Verifier): Rejects non-JSON payloads with `400` or `415`.
+- `POST /tasks` (Schema Validator): Rejects payloads missing title with `400 Bad Request`.
+- `GET /undefined-route`: Validates 404 catch-all middleware.
+- `GET /trigger-error`: Validates centralized 500 error handling middleware.
+
+### Running Tests Locally
+
+```bash
+cd task-manager-api
+npm test
+```
+Or run from root:
+```bash
+npm test
+```
+
+For complete analysis of CI vs CD, failure diagnosis runbooks, and deliberate failure demonstrations, see the full report: [CICD_PIPELINE_REPORT.md](file:///d:/Portfolio/CICD_PIPELINE_REPORT.md).
+
 
 
 

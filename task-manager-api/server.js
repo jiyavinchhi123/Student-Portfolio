@@ -926,10 +926,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`==================================================`);
-  console.log(`Task Manager API running at http://localhost:${PORT}`);
-  console.log(`Global logger and MongoDB connection active.`);
-  console.log(`==================================================`);
-});
+// Start Server only when executed directly (allows supertest in CI without port conflict)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`Task Manager API running at http://localhost:${PORT}`);
+    console.log(`Global logger and MongoDB connection active.`);
+    console.log(`==================================================`);
+  });
+}
+
+module.exports = app;
+

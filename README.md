@@ -1,6 +1,10 @@
 # Modern Student Portfolio - React Router & State Management
 
-A premium, modern React portfolio application built with Vite and Tailwind CSS. This version includes full single-page application (SPA) routing and interactive, reactive state management features.
+[![CI Pipeline](https://github.com/jiyavinchhi123/Student-Portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/jiyavinchhi123/Student-Portfolio/actions/workflows/ci.yml)
+[![Docker Support](https://img.shields.io/badge/Docker-Compose%20Ready-blue?logo=docker)](file:///d:/Portfolio/docker-compose.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-7%20Passed-brightgreen)](file:///d:/Portfolio/task-manager-api/tests/api.test.js)
+
+A premium, modern React portfolio application built with Vite and Tailwind CSS. This version includes full single-page application (SPA) routing, interactive reactive state management, containerization with Docker Compose, and automated CI/CD with GitHub Actions.
 
 ## 🚀 Key Features
 
@@ -39,6 +43,7 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **In-Memory Caching (`node-cache`)**: Accelerated read endpoints (`GET /tasks`) by 68.5% with event-driven cache invalidation on mutations (Detailed in [CACHING_PERFORMANCE_REPORT.md](file:///d:/Portfolio/CACHING_PERFORMANCE_REPORT.md)).
 - **Asynchronous Background Processing (Native `EventEmitter`)**: Decoupled notification dispatch and side-effect processing from the HTTP critical path. API returns `201 Created` in ~25 ms, while notifications process non-blockingly on the event loop (Detailed in [EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md](file:///d:/Portfolio/EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md)).
 - **Docker Containerization & Multi-Service Orchestration**: Fully containerized 3-tier architecture (React frontend + Express API + MongoDB) orchestrated via `docker-compose.yml` with isolated bridge networking and persistent volumes (Detailed in [DOCKER_CONTAINERIZATION_REPORT.md](file:///d:/Portfolio/DOCKER_CONTAINERIZATION_REPORT.md)).
+- **Automated CI/CD Pipeline (GitHub Actions)**: Automated testing and build validation triggered on push and pull requests to `main`. Includes frontend build verification, live MongoDB service container integration, and automated Jest/Supertest suite execution (Detailed in [CICD_PIPELINE_REPORT.md](file:///d:/Portfolio/CICD_PIPELINE_REPORT.md)).
 
 ---
 
