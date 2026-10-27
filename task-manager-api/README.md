@@ -390,6 +390,8 @@ For complete analysis of Responsible AI principles, privacy implications, and gr
 
 For the full architectural evaluation of the API against the Richardson Maturity Model (Levels 0–3) with HATEOAS examples, see: [MATURITY.md](file:///d:/Portfolio/MATURITY.md).
 
+For full details on the STRIDE Threat Model, local TLS/HTTPS setup with mkcert, and NoSQL injection prevention with express-mongo-sanitize, see: [SECURITY.md](file:///d:/Portfolio/SECURITY.md).
+
 
 
 

@@ -24,6 +24,43 @@ app.use(cors());
 // Parse incoming request JSON payloads
 app.use(express.json());
 
+// Secure Coding: Input sanitization using express-mongo-sanitize (Prevents NoSQL Injection)
+let mongoSanitize;
+try {
+  mongoSanitize = require('express-mongo-sanitize');
+} catch (e) {
+  // Built-in resilient implementation matching express-mongo-sanitize
+  const sanitize = (obj, replaceWith = '_') => {
+    if (!obj || typeof obj !== 'object') return obj;
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (typeof val === 'object' && val !== null) {
+        sanitize(val, replaceWith);
+      }
+      if (key.startsWith('$') || key.includes('.')) {
+        const cleanKey = key.replace(/^\$|\./g, replaceWith);
+        delete obj[key];
+        obj[cleanKey] = val;
+      }
+    }
+    return obj;
+  };
+  mongoSanitize = (options = {}) => (req, res, next) => {
+    const replaceWith = options.replaceWith || '_';
+    ['body', 'params', 'headers', 'query'].forEach(k => {
+      if (req[k]) sanitize(req[k], replaceWith);
+    });
+    next();
+  };
+}
+
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    console.warn(`[SECURITY] Sanitized potentially malicious NoSQL operator in parameter: ${key}`);
+  }
+}));
+
 // Seeding function for portfolio data
 async function seedPortfolioData() {
   try {
@@ -569,6 +606,14 @@ app.post('/debug/events/clear', (req, res) => {
   });
 });
 
+// --- Security Inspection Endpoint (NoSQL Injection Verification) ---
+app.post('/debug/security/sanitize-test', (req, res) => {
+  res.status(200).json({
+    message: "Payload received and sanitized by express-mongo-sanitize",
+    receivedBody: req.body
+  });
+});
+
 // --- External AI Integration Endpoints (Practical 13) ---
 const handleAiGenerateDescription = async (req, res, next) => {
   try {
@@ -1013,6 +1058,14 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error("[ERROR] Global Exception Handler caught an error:", err.stack);
 
+  // Clean, structured error handling for malformed JSON request bodies
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "Malformed JSON syntax in request body. Ensure valid JSON with double-quoted strings."
+    });
+  }
+
   // Clean, structured error handling for Mongoose Validation Errors
   if (err.name === 'ValidationError') {
     const errorDetails = Object.values(err.errors).map(val => val.message);
@@ -1040,12 +1093,37 @@ app.use((err, req, res, next) => {
 
 // Start Server only when executed directly (allows supertest in CI without port conflict)
 if (require.main === module) {
+  // 1. Standard HTTP Server (Port 5000)
   app.listen(PORT, () => {
     console.log(`==================================================`);
     console.log(`Task Manager API running at http://localhost:${PORT}`);
     console.log(`Global logger and MongoDB connection active.`);
     console.log(`==================================================`);
   });
+
+  // 2. HTTPS Server (Port 5443) using mkcert for local TLS development
+  const fs = require('fs');
+  const https = require('https');
+  const path = require('path');
+  const keyPath = path.join(__dirname, 'localhost-key.pem');
+  const certPath = path.join(__dirname, 'localhost.pem');
+
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    try {
+      const sslOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      };
+      https.createServer(sslOptions, app).listen(5443, () => {
+        console.log(`🔒 HTTPS secure server running at https://localhost:5443`);
+      });
+    } catch (sslErr) {
+      console.warn(`[SECURITY] Failed to initialize HTTPS server:`, sslErr.message);
+    }
+  } else {
+    console.log(`ℹ️ [SECURITY] HTTPS certificates not detected (localhost.pem / localhost-key.pem).`);
+    console.log(`   To enable HTTPS on port 5443: run 'mkcert -install' then 'mkcert localhost'.`);
+  }
 }
 
 module.exports = app;

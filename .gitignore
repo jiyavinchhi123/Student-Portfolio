@@ -23,3 +23,9 @@ dist/
 # System files
 Thumbs.db
 .DS_Store
+
+# TLS / SSL Certificates (mkcert local dev keys)
+*.pem
+*.key
+*.crt
+certs/

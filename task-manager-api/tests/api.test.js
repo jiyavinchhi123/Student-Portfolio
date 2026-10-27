@@ -144,6 +144,25 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     expect(res.body._links.self.href).toContain(`/tasks/${createdId}`);
   });
 
+  // Test 13: Security Hardening - express-mongo-sanitize strips NoSQL injection operators ($ and .)
+  test('POST /debug/security/sanitize-test sanitizes NoSQL injection operators ($ and .)', async () => {
+    const maliciousPayload = {
+      email: { "$gt": "" },
+      password: { "$gt": "" }
+    };
+
+    const res = await request(app)
+      .post('/debug/security/sanitize-test')
+      .set('Content-Type', 'application/json')
+      .send(maliciousPayload);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.receivedBody.email).not.toHaveProperty('$gt');
+    expect(res.body.receivedBody.email).toHaveProperty('_gt', '');
+    expect(res.body.receivedBody.password).not.toHaveProperty('$gt');
+    expect(res.body.receivedBody.password).toHaveProperty('_gt', '');
+  });
+
   // Cleanup: Close Mongoose database connection so Jest finishes cleanly
   afterAll(async () => {
     await mongoose.connection.close();
