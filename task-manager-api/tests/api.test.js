@@ -10,6 +10,8 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
+  
+
 
   // Test 2: In-Memory Caching inspection endpoint
   test('GET /debug/cache returns 200 with cache statistics', async () => {
@@ -60,6 +62,49 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     const res = await request(app).get('/trigger-error');
     expect(res.statusCode).toBe(500);
     expect(res.body).toHaveProperty('error', 'Internal Server Error');
+  });
+
+  // Test 8: AI Integration - POST /api/ai/generate-description without title returns 400
+  test('POST /api/ai/generate-description without title returns 400 Bad Request', async () => {
+    const res = await request(app)
+      .post('/api/ai/generate-description')
+      .set('Content-Type', 'application/json')
+      .send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error', 'Bad Request');
+  });
+
+  // Test 9: AI Integration - POST /api/ai/generate-description generates description & disclaimer
+  test('POST /api/ai/generate-description generates description with disclaimer', async () => {
+    const res = await request(app)
+      .post('/api/ai/generate-description')
+      .set('Content-Type', 'application/json')
+      .send({ title: 'Implement JWT Authentication with Refresh Tokens' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('description');
+    expect(typeof res.body.description).toBe('string');
+    expect(res.body.description.length).toBeGreaterThan(0);
+    expect(res.body).toHaveProperty('suggestedPriority');
+    expect(res.body).toHaveProperty('disclaimer');
+  });
+
+  // Test 10: AI Integration - Rate limiting returns 429 on rapid consecutive duplicate requests
+  test('POST /api/ai/generate-description returns 429 on rapid identical requests', async () => {
+    const testTitle = 'Rate Limit Probe Task ' + Date.now();
+    // First request should succeed
+    const firstRes = await request(app)
+      .post('/api/ai/generate-description')
+      .set('Content-Type', 'application/json')
+      .send({ title: testTitle });
+    expect(firstRes.statusCode).toBe(200);
+
+    // Second immediate request with same title must trigger rate limiting
+    const secondRes = await request(app)
+      .post('/api/ai/generate-description')
+      .set('Content-Type', 'application/json')
+      .send({ title: testTitle });
+    expect(secondRes.statusCode).toBe(429);
+    expect(secondRes.body).toHaveProperty('error', 'Too Many Requests');
   });
 
   // Cleanup: Close Mongoose database connection so Jest finishes cleanly

@@ -347,6 +347,33 @@ Written with **Jest** and **Supertest** to test critical REST endpoints, middlew
 - `POST /tasks` (Schema Validator): Rejects payloads missing title with `400 Bad Request`.
 - `GET /undefined-route`: Validates 404 catch-all middleware.
 - `GET /trigger-error`: Validates centralized 500 error handling middleware.
+- `POST /api/ai/generate-description` (Validation): Rejects missing title with `400 Bad Request`.
+- `POST /api/ai/generate-description` (Generation): Generates description, suggested priority, and Responsible AI disclaimer.
+- `POST /api/ai/generate-description` (Rate Limiting): Enforces 15-second cooldown and returns `429 Too Many Requests`.
+
+---
+
+## 🤖 External AI Service Integration & Responsible AI (Practical 13)
+
+### 1. Architecture Overview
+- **Proxy Pattern**: All external AI calls (OpenAI `gpt-4o-mini` / Google Gemini 1.5 Flash) are routed exclusively through the Express backend at `POST /api/ai/generate-description`. The frontend React application never contacts OpenAI directly.
+- **Server-Side Secret Isolation**: API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`) reside solely in `task-manager-api/.env` and are strictly excluded from git tracking via `.gitignore`.
+- **Graceful Degradation**: If the third-party AI service is unreachable, times out, or has an invalid/missing API key, the server catches the exception and immediately invokes a contextual NLP fallback heuristic engine to return a valid description. The app never crashes or returns 500.
+- **Human-in-the-Loop Review**: Returned descriptions are populated into the React task form as editable drafts. The user maintains full agency to modify or delete the text before committing.
+- **Sliding-Window Rate Limiting**: Built-in in-memory rate limiter enforces a 15-second cooldown per task title to prevent quota exhaustion and API abuse.
+
+### 2. Testing Endpoints Locally
+```bash
+# Test AI Description Generation (with fallback failover)
+curl -X POST http://localhost:5000/api/ai/generate-description \
+  -H "Content-Type: application/json" \
+  -d "{\"title\": \"Dockerize Full Stack Application\"}"
+
+# Test Rate Limiting (Run twice in <15s to trigger 429)
+curl -X POST http://localhost:5000/api/ai/generate-description \
+  -H "Content-Type: application/json" \
+  -d "{\"title\": \"Dockerize Full Stack Application\"}"
+```
 
 ### Running Tests Locally
 
@@ -359,7 +386,7 @@ Or run from root:
 npm test
 ```
 
-For complete analysis of CI vs CD, failure diagnosis runbooks, and deliberate failure demonstrations, see the full report: [CICD_PIPELINE_REPORT.md](file:///d:/Portfolio/CICD_PIPELINE_REPORT.md).
+For complete analysis of Responsible AI principles, privacy implications, and graceful degradation theory, see the full report: [AI_INTEGRATION_REPORT.md](file:///d:/Portfolio/AI_INTEGRATION_REPORT.md).
 
 
 

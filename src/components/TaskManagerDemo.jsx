@@ -17,7 +17,8 @@ import {
   FiClock,
   FiUser,
   FiZap,
-  FiShield
+  FiShield,
+  FiCpu
 } from "react-icons/fi";
 
 const SERVER_URL = "http://localhost:5000";
@@ -34,6 +35,10 @@ export default function TaskManagerDemo() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
   const [assignedUser, setAssignedUser] = useState("Jiya Vinchhi");
+  
+  // AI Assistance State (Practical 13)
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiSuggestionMeta, setAiSuggestionMeta] = useState(null);
   
   // Tab & Background EventEmitter State
   const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "events"
@@ -110,6 +115,65 @@ export default function TaskManagerDemo() {
   useEffect(() => {
     checkBackend();
   }, []);
+
+  // --- External AI Integration (Practical 13) ---
+  const handleGenerateAiDescription = async () => {
+    if (!title.trim()) {
+      showToast("Please enter a task title first to generate an AI description.", "warning");
+      return;
+    }
+
+    setIsGeneratingAi(true);
+    try {
+      const response = await fetch(`${SERVER_URL}/api/ai/generate-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim() }),
+        signal: AbortSignal.timeout(12000)
+      });
+
+      const data = await response.json();
+
+      if (response.status === 429) {
+        showToast(data.message || "Rate limit reached. Please wait a few seconds before requesting AI again.", "warning");
+        return;
+      }
+
+      if (data && data.description) {
+        setDescription(data.description);
+        if (data.suggestedPriority) {
+          setPriority(data.suggestedPriority);
+        }
+        setAiSuggestionMeta({
+          source: data.source || "ai",
+          suggestedPriority: data.suggestedPriority,
+          fallback: data.fallback || false,
+          disclaimer: data.disclaimer || "AI-generated suggestion. Please review and edit before saving."
+        });
+
+        if (data.fallback) {
+          showToast("AI suggestion generated via graceful degradation engine!", "info");
+        } else {
+          showToast("✨ AI description & priority generated successfully!", "success");
+        }
+      } else {
+        showToast("No description returned by AI endpoint.", "warning");
+      }
+    } catch (err) {
+      // Graceful client offline fallback if backend API is not responding
+      const fallbackDesc = `Implement, test, and document all core requirements for task: "${title.trim()}".`;
+      setDescription(fallbackDesc);
+      setAiSuggestionMeta({
+        source: "client-offline-fallback",
+        suggestedPriority: priority,
+        fallback: true,
+        disclaimer: "Offline heuristic suggestion. Review and edit as needed."
+      });
+      showToast("Offline fallback description populated.", "info");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   // --- CRUD Operations ---
 
@@ -189,6 +253,7 @@ export default function TaskManagerDemo() {
     setTitle("");
     setDescription("");
     setPriority("medium");
+    setAiSuggestionMeta(null);
   };
 
   // Toggle Complete Task (PUT)
@@ -468,15 +533,49 @@ export default function TaskManagerDemo() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Description
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiDescription}
+                    disabled={isGeneratingAi || !title.trim()}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                    title={title.trim() ? "Generate description & suggest priority using AI" : "Enter a task title first"}
+                  >
+                    <FiCpu className={isGeneratingAi ? "animate-spin" : ""} />
+                    {isGeneratingAi ? "Generating..." : "✨ AI Assist"}
+                  </button>
+                </div>
                 <textarea
-                  placeholder="Describe details of the task..."
+                  placeholder="Describe details of the task or click '✨ AI Assist'..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={loading}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
                 />
+                
+                {/* Responsible AI Disclaimer & Metadata Banner */}
+                {aiSuggestionMeta && (
+                  <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex flex-col gap-1 transition-all">
+                    <div className="flex items-center justify-between font-semibold">
+                      <span className="flex items-center gap-1 text-[11px]">
+                        <FiCpu className="text-purple-500" />
+                        Source: {aiSuggestionMeta.source === "openai" ? "OpenAI GPT-4o-mini" : aiSuggestionMeta.source === "gemini" ? "Google Gemini 1.5" : "Graceful Fallback Engine"}
+                      </span>
+                      {aiSuggestionMeta.suggestedPriority && (
+                        <span className="uppercase text-[10px] tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 font-bold">
+                          Suggested: {aiSuggestionMeta.suggestedPriority}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                      ⚠️ <strong>Responsible AI:</strong> Suggestion is an editable machine draft. Review before submitting. Never send credentials or personal data.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -531,6 +630,22 @@ export default function TaskManagerDemo() {
                 Non-blocking Node.js native events
               </span>
               <span className="text-blue-500 font-semibold">{eventLogs.length} events logged</span>
+            </div>
+          </div>
+
+          {/* Responsible AI & LLM Service Integration Card (Practical 13) */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-blue-500/10 border border-purple-500/20 backdrop-blur-md flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              <FiCpu className="text-purple-500" /> External AI Integration (Practical 13)
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Integrates <strong>OpenAI GPT-4o-mini</strong> and <strong>Google Gemini</strong> via isolated backend proxy (<code className="text-purple-600 dark:text-purple-300 font-mono text-[11px]">/api/ai/generate-description</code>). Features <strong>Graceful Degradation</strong> and <strong>Sliding Rate-Limiting</strong>.
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600 dark:text-slate-400 pt-1 border-t border-purple-500/10">
+              <span className="flex items-center gap-1">🔒 Key: Server .env Only</span>
+              <span className="flex items-center gap-1">🛡️ Graceful Fallback</span>
+              <span className="flex items-center gap-1">⏱️ 15s Per-Task Cooldown</span>
+              <span className="flex items-center gap-1">✍️ Editable AI Drafts</span>
             </div>
           </div>
         </div>

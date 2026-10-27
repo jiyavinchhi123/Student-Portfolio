@@ -44,6 +44,7 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **Asynchronous Background Processing (Native `EventEmitter`)**: Decoupled notification dispatch and side-effect processing from the HTTP critical path. API returns `201 Created` in ~25 ms, while notifications process non-blockingly on the event loop (Detailed in [EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md](file:///d:/Portfolio/EVENT_DRIVEN_BACKGROUND_PROCESSING_REPORT.md)).
 - **Docker Containerization & Multi-Service Orchestration**: Fully containerized 3-tier architecture (React frontend + Express API + MongoDB) orchestrated via `docker-compose.yml` with isolated bridge networking and persistent volumes (Detailed in [DOCKER_CONTAINERIZATION_REPORT.md](file:///d:/Portfolio/DOCKER_CONTAINERIZATION_REPORT.md)).
 - **Automated CI/CD Pipeline (GitHub Actions)**: Automated testing and build validation triggered on push and pull requests to `main`. Includes frontend build verification, live MongoDB service container integration, and automated Jest/Supertest suite execution (Detailed in [CICD_PIPELINE_REPORT.md](file:///d:/Portfolio/CICD_PIPELINE_REPORT.md)).
+- **External AI Service Integration & Responsible AI (Practical 13)**: Backend proxy endpoint `/api/ai/generate-description` integrating OpenAI `gpt-4o-mini` and Google Gemini. Features server-side secret isolation, 15-second rate-limiting, human-in-the-loop review, and graceful degradation fallback (Detailed in [AI_INTEGRATION_REPORT.md](file:///d:/Portfolio/AI_INTEGRATION_REPORT.md)).
 
 ---
 

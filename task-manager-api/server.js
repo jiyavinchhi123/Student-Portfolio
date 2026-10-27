@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const cache = require('./cache');
 const taskEvents = require('./events');
 const listeners = require('./listeners');
+const aiService = require('./aiService');
 const Task = require('./models/Task');
 const Profile = require('./models/Profile');
 const About = require('./models/About');
@@ -490,6 +491,40 @@ app.post('/debug/events/clear', (req, res) => {
     events: []
   });
 });
+
+// --- External AI Integration Endpoints (Practical 13) ---
+const handleAiGenerateDescription = async (req, res, next) => {
+  try {
+    const { title } = req.body;
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Task title is required to generate an AI description."
+      });
+    }
+
+    const clientIdentifier = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'client';
+    const result = await aiService.generateTaskDescription(title, clientIdentifier);
+
+    res.status(200).json(result);
+  } catch (err) {
+    if (err.status === 429) {
+      return res.status(429).json({
+        error: "Too Many Requests",
+        message: err.message,
+        retryAfter: err.retryAfter
+      });
+    }
+    // Graceful Degradation: Never crash or return 500 when third-party AI fails
+    console.warn('[AI Endpoint Fallback]', err.message);
+    const fallback = aiService.generateFallbackSuggestion(req.body?.title || 'New Task');
+    res.status(200).json(fallback);
+  }
+};
+
+app.post('/api/ai/generate-description', handleAiGenerateDescription);
+app.post('/ai/generate-description', handleAiGenerateDescription);
+
 
 // Middleware to validate Education Mongoose ID
 const validateEducationId = (req, res, next) => {
