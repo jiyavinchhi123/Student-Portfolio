@@ -15,6 +15,7 @@ A lightweight RESTful backend API designed with Node.js and Express.js, showcasi
 7. [Asynchronous Background Processing (Node.js Native EventEmitter)](#asynchronous-background-processing-nodejs-native-eventemitter)
 8. [Docker Containerization & Multi-Service Orchestration](#docker-containerization--multi-service-orchestration)
 9. [CI/CD Automated Testing Pipeline (GitHub Actions)](#cicd-automated-testing-pipeline-github-actions)
+10. [Blue-Green Zero-Downtime Deployment & Traffic Switching](#blue-green-zero-downtime-deployment--traffic-switching)
 
 ---
 
@@ -73,6 +74,7 @@ By default, the server runs on **port 5000** (`http://localhost:5000`).
 | **GET** | `/debug/cache` | Inspect cache metrics (hits, misses, hit ratio, active keys) | `200 OK` |
 | **GET** | `/tasks/cache/stats` | Alias for cache inspection and performance monitoring | `200 OK` |
 | **POST** | `/debug/cache/clear` | Clear/flush in-memory cache for empirical benchmarking | `200 OK` |
+| **GET** | `/version` | Returns active deployment version (`blue` or `green`), environment, and timestamp | `200 OK` |
 | **GET** | `/trigger-error` | Deliberately triggers a server error to test Global Error Handling | `500 Internal Server Error` |
 
 ---
@@ -397,6 +399,9 @@ For full empirical performance benchmarks measuring RPS, latency, and error rate
 For the complete architectural analysis of Monolith vs Microservices, service decomposition proposals, trade-offs, and stateless horizontal autoscaling with JWT, see: [ARCHITECTURE.md](file:///d:/Portfolio/ARCHITECTURE.md).
 
 For cloud computing service models (IaaS vs PaaS vs Serverless), container resource governance, and OOM-kill analysis with Docker Compose, see: [CLOUD.md](file:///d:/Portfolio/CLOUD.md).
+
+For blue-green zero-downtime deployment simulation, traffic cutover, rollback protocol, and comparison with rolling updates, see: [DEPLOYMENT.md](file:///d:/Portfolio/DEPLOYMENT.md).
+
 
 
 

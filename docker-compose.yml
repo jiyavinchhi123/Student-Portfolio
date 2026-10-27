@@ -28,26 +28,25 @@ services:
           memory: 512M
 
   # ----------------------------------------------------------------------------
-  # 2. Backend Service: Node.js / Express REST API (with In-Memory Caching & EventEmitter)
+  # 2. Blue Backend Service: Active Production Version (Port 5000)
   # ----------------------------------------------------------------------------
-  backend:
+  backend-blue:
     build:
       context: ./task-manager-api
       dockerfile: Dockerfile
-    container_name: task-manager-backend
+    container_name: task-manager-backend-blue
     restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
       - PORT=5000
-      # Uses the Docker network service name 'mongodb' instead of localhost
+      - VERSION=blue
       - MONGO_URI=mongodb://mongodb:27017/taskmanager
     depends_on:
       - mongodb
     networks:
       - app-network
-    # Resource Limits (Cloud Computing: Memory & CPU Constraints)
-    # Works across both Compose standalone (mem_limit/cpus) and Swarm (deploy.resources)
+    # Resource Limits & Reservations
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
@@ -60,7 +59,38 @@ services:
           memory: 128M
 
   # ----------------------------------------------------------------------------
-  # 3. Frontend Service: React + Vite Portfolio Dashboard
+  # 3. Green Backend Service: Staging / Next Release Version (Port 5001)
+  # ----------------------------------------------------------------------------
+  backend-green:
+    build:
+      context: ./task-manager-api
+      dockerfile: Dockerfile
+    container_name: task-manager-backend-green
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      - PORT=5000
+      - VERSION=green
+      - MONGO_URI=mongodb://mongodb:27017/taskmanager
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+    # Resource Limits & Reservations
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # ----------------------------------------------------------------------------
+  # 4. Frontend Service: React + Vite Portfolio Dashboard
   # ----------------------------------------------------------------------------
   frontend:
     build:
@@ -71,7 +101,8 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - backend
+      - backend-blue
+      - backend-green
     networks:
       - app-network
     # Resource Limits for Frontend Service

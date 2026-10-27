@@ -21,7 +21,7 @@ import {
   FiCpu
 } from "react-icons/fi";
 
-const SERVER_URL = "http://localhost:5000";
+const DEFAULT_SERVER_URL = "http://localhost:5000";
 
 export default function TaskManagerDemo() {
   const [tasks, setTasks] = useState([]);
@@ -29,6 +29,16 @@ export default function TaskManagerDemo() {
   const [backendOnline, setBackendOnline] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(true);
+
+  // Blue-Green Deployment State (Practical 14 / Assignment 6)
+  const [serverUrl, setServerUrl] = useState(() => localStorage.getItem("blue_green_port") || DEFAULT_SERVER_URL);
+  const [activeVersion, setActiveVersion] = useState("blue");
+
+  const switchBlueGreen = async (targetUrl) => {
+    setServerUrl(targetUrl);
+    localStorage.setItem("blue_green_port", targetUrl);
+    await checkBackend(true, targetUrl);
+  };
   
   // Form State
   const [title, setTitle] = useState("");
@@ -58,9 +68,9 @@ export default function TaskManagerDemo() {
   };
 
   // Fetch recent background events from Express API
-  const fetchEventLogs = async () => {
+  const fetchEventLogs = async (url = serverUrl) => {
     try {
-      const response = await fetch(`${SERVER_URL}/debug/events`, { signal: AbortSignal.timeout(2000) });
+      const response = await fetch(`${url}/debug/events`, { signal: AbortSignal.timeout(2000) });
       if (response.ok) {
         const data = await response.json();
         setEventLogs(data.events || []);
@@ -70,19 +80,30 @@ export default function TaskManagerDemo() {
     }
   };
 
-  // Initial Check for Backend Connection
-  const checkBackend = async (showPingNotification = false) => {
+  // Initial Check for Backend Connection & Version Introspection
+  const checkBackend = async (showPingNotification = false, targetUrl = serverUrl) => {
     setCheckingConnection(true);
     try {
-      const response = await fetch(`${SERVER_URL}/tasks`, { signal: AbortSignal.timeout(2000) });
+      const response = await fetch(`${targetUrl}/tasks`, { signal: AbortSignal.timeout(2000) });
       if (response.ok) {
         setBackendOnline(true);
         setUseFallback(false);
         const data = await response.json();
         setTasks(data);
-        fetchEventLogs();
+        fetchEventLogs(targetUrl);
+        
+        // Introspect active container version
+        try {
+          const vRes = await fetch(`${targetUrl}/version`, { signal: AbortSignal.timeout(1000) });
+          if (vRes.ok) {
+            const vData = await vRes.json();
+            setActiveVersion(vData.version || (targetUrl.includes("5001") ? "green" : "blue"));
+          }
+        } catch (_) {}
+
         if (showPingNotification) {
-          showToast("Connected to live MongoDB server!", "success");
+          const isGreen = targetUrl.includes("5001");
+          showToast(`Traffic routed to ${isGreen ? "GREEN (Port 5001)" : "BLUE (Port 5000)"} container! (Zero downtime)`, "success");
         }
       } else {
         throw new Error("Server not responding correctly");
@@ -125,7 +146,7 @@ export default function TaskManagerDemo() {
 
     setIsGeneratingAi(true);
     try {
-      const response = await fetch(`${SERVER_URL}/api/ai/generate-description`, {
+      const response = await fetch(`${serverUrl}/api/ai/generate-description`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim() }),
@@ -228,7 +249,7 @@ export default function TaskManagerDemo() {
       setLoading(false);
     } else {
       try {
-        const response = await fetch(`${SERVER_URL}/tasks`, {
+        const response = await fetch(`${serverUrl}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(bodyData)
@@ -269,7 +290,7 @@ export default function TaskManagerDemo() {
       showToast(`Task marked as ${updatedStatus ? "completed" : "pending"}!`);
     } else {
       try {
-        const response = await fetch(`${SERVER_URL}/tasks/${targetId}`, {
+        const response = await fetch(`${serverUrl}/tasks/${targetId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(bodyData)
@@ -314,7 +335,7 @@ export default function TaskManagerDemo() {
       }
     } else {
       try {
-        const response = await fetch(`${SERVER_URL}/tasks/${id}`, {
+        const response = await fetch(`${serverUrl}/tasks/${id}`, {
           method: "DELETE"
         });
         const data = await response.json();
@@ -339,7 +360,7 @@ export default function TaskManagerDemo() {
       return;
     }
     try {
-      const res = await fetch(`${SERVER_URL}/debug/events/simulate-error`, {
+      const res = await fetch(`${serverUrl}/debug/events/simulate-error`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: "UI Triggered Listener Exception Test" })
@@ -361,7 +382,7 @@ export default function TaskManagerDemo() {
       return;
     }
     try {
-      await fetch(`${SERVER_URL}/debug/events/clear`, { method: "POST" });
+      await fetch(`${serverUrl}/debug/events/clear`, { method: "POST" });
       setEventLogs([]);
       showToast("Event buffer cleared on server.");
     } catch (e) {
@@ -469,24 +490,57 @@ export default function TaskManagerDemo() {
       </AnimatePresence>
 
       {/* Connection Status & Database Control */}
-      <div className="p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${backendOnline ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
           <div className="text-sm">
-            Database Status: <span className="font-semibold">{backendOnline ? "Connected to MongoDB via Express API" : "Offline (Local Storage)"}</span>
+            Database: <span className="font-semibold">{backendOnline ? "Connected (MongoDB)" : "Offline (Local)"}</span>
           </div>
         </div>
-        {backendOnline && (
-          <button
-            onClick={() => {
-              setUseFallback(!useFallback);
-              showToast(useFallback ? "Connected to MongoDB." : "Forced local fallback mode.", "warning");
-            }}
-            className="px-3 py-1 text-xs font-semibold rounded bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition text-slate-700 dark:text-slate-300"
-          >
-            {useFallback ? "Switch to Mongoose" : "Simulate Offline"}
-          </button>
-        )}
+
+        {/* Blue-Green Deployment Interactive Switcher */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Traffic Route:</span>
+          <div className="flex items-center p-1 rounded-xl bg-slate-200/50 dark:bg-white/10 text-xs font-semibold gap-1">
+            <button
+              type="button"
+              onClick={() => switchBlueGreen("http://localhost:5000")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                serverUrl === "http://localhost:5000"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-300 hover:text-blue-500"
+              }`}
+              title="Route traffic to Blue production container on port 5000"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-300" />
+              Blue (5000)
+            </button>
+            <button
+              type="button"
+              onClick={() => switchBlueGreen("http://localhost:5001")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                serverUrl === "http://localhost:5001"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-300 hover:text-emerald-500"
+              }`}
+              title="Route traffic to Green staging container on port 5001"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+              Green (5001)
+            </button>
+          </div>
+          {backendOnline && (
+            <button
+              onClick={() => {
+                setUseFallback(!useFallback);
+                showToast(useFallback ? "Connected to MongoDB." : "Forced local fallback mode.", "warning");
+              }}
+              className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition text-slate-700 dark:text-slate-300"
+            >
+              {useFallback ? "Mongoose" : "Offline Mode"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Metrics Cards Grid */}

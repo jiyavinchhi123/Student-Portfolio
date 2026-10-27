@@ -163,6 +163,15 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     expect(res.body.receivedBody.password).toHaveProperty('_gt', '');
   });
 
+  // Test 14: Blue-Green Deployment - GET /version returns status 200 and deployment version
+  test('GET /version returns status 200 and deployment version', async () => {
+    const res = await request(app).get('/version');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('version');
+    expect(typeof res.body.version).toBe('string');
+    expect(res.body).toHaveProperty('status', 'healthy');
+  });
+
   // Cleanup: Close Mongoose database connection so Jest finishes cleanly
   afterAll(async () => {
     await mongoose.connection.close();

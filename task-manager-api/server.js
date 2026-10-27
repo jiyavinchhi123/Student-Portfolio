@@ -614,6 +614,16 @@ app.post('/debug/security/sanitize-test', (req, res) => {
   });
 });
 
+// --- Blue-Green Deployment Version Endpoint ---
+app.get('/version', (req, res) => {
+  res.status(200).json({
+    version: process.env.VERSION || 'blue',
+    environment: process.env.NODE_ENV || 'development',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // --- External AI Integration Endpoints (Practical 13) ---
 const handleAiGenerateDescription = async (req, res, next) => {
   try {
@@ -1039,6 +1049,15 @@ app.put('/portfolio/contact', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// Zero-Downtime Blue-Green Deployment Version Endpoint
+app.get('/version', (req, res) => {
+  res.json({
+    version: process.env.VERSION || 'unknown',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Trigger a deliberate server error to test Global Error Handling (for testing only)
