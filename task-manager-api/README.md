@@ -388,6 +388,8 @@ npm test
 
 For complete analysis of Responsible AI principles, privacy implications, and graceful degradation theory, see the full report: [AI_INTEGRATION_REPORT.md](file:///d:/Portfolio/AI_INTEGRATION_REPORT.md).
 
+For the full architectural evaluation of the API against the Richardson Maturity Model (Levels 0–3) with HATEOAS examples, see: [MATURITY.md](file:///d:/Portfolio/MATURITY.md).
+
 
 
 

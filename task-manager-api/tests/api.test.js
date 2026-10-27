@@ -107,8 +107,46 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     expect(secondRes.body).toHaveProperty('error', 'Too Many Requests');
   });
 
+  // Test 11: Richardson Maturity Level 2 - POST /tasks returns 201 Created and sets Location header
+  test('POST /tasks returns 201 Created and sets Location header (Level 2)', async () => {
+    const res = await request(app)
+      .post('/tasks')
+      .set('Content-Type', 'application/json')
+      .send({
+        title: 'Richardson Level 2 Verification Task ' + Date.now(),
+        priority: 'high'
+      });
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('_id');
+    expect(res.headers).toHaveProperty('location');
+    expect(res.headers.location).toContain('/tasks/');
+  });
+
+  // Test 12: Richardson Maturity Level 3 - GET /tasks/:id/hateoas returns hypermedia _links (HATEOAS)
+  test('GET /tasks/:id/hateoas returns HATEOAS hypermedia links (Level 3)', async () => {
+    // First create a task
+    const createRes = await request(app)
+      .post('/tasks')
+      .set('Content-Type', 'application/json')
+      .send({
+        title: 'HATEOAS Verification Task ' + Date.now(),
+        priority: 'medium'
+      });
+    const createdId = createRes.body._id;
+
+    const res = await request(app).get(`/tasks/${createdId}/hateoas`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('_links');
+    expect(res.body._links).toHaveProperty('self');
+    expect(res.body._links).toHaveProperty('update');
+    expect(res.body._links).toHaveProperty('delete');
+    expect(res.body._links).toHaveProperty('collection');
+    expect(res.body._links.self.href).toContain(`/tasks/${createdId}`);
+  });
+
   // Cleanup: Close Mongoose database connection so Jest finishes cleanly
   afterAll(async () => {
     await mongoose.connection.close();
   });
 });
+

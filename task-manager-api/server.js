@@ -224,6 +224,51 @@ const validateTaskId = (req, res, next) => {
   next();
 };
 
+// Richardson Maturity Model Level 3 (HATEOAS Hypermedia Formatter)
+const formatTaskWithHateoas = (task, req) => {
+  const host = req.get('host') || 'localhost:5000';
+  const protocol = req.protocol || 'http';
+  const baseUrl = `${protocol}://${host}`;
+  const taskId = task._id || task.id;
+  const taskObj = typeof task.toObject === 'function' ? task.toObject() : { ...task };
+
+  return {
+    ...taskObj,
+    _links: {
+      self: {
+        href: `${baseUrl}/tasks/${taskId}`,
+        method: "GET",
+        rel: "self",
+        description: "Fetch individual task record"
+      },
+      update: {
+        href: `${baseUrl}/tasks/${taskId}`,
+        method: "PUT",
+        rel: "update",
+        description: "Update this task"
+      },
+      delete: {
+        href: `${baseUrl}/tasks/${taskId}`,
+        method: "DELETE",
+        rel: "delete",
+        description: "Permanently delete this task"
+      },
+      collection: {
+        href: `${baseUrl}/tasks`,
+        method: "GET",
+        rel: "collection",
+        description: "Retrieve list of all tasks"
+      },
+      ai_assist: {
+        href: `${baseUrl}/api/ai/generate-description`,
+        method: "POST",
+        rel: "action",
+        description: "Auto-generate description & suggest priority"
+      }
+    }
+  };
+};
+
 // --- RESTful Endpoints with In-Memory Caching (node-cache) ---
 
 // GET /tasks - Read all tasks from MongoDB (with node-cache in-memory caching)
@@ -231,8 +276,9 @@ app.get('/tasks', async (req, res, next) => {
   try {
     // Optional bypass for benchmarking/testing: ?noCache=true or Cache-Control: no-cache
     const bypassCache = req.query.noCache === 'true' || req.headers['cache-control'] === 'no-cache';
+    const isHateoas = req.query.hateoas === 'true';
 
-    if (!bypassCache) {
+    if (!bypassCache && !isHateoas) {
       const cachedTasks = cache.get('all_tasks');
       if (cachedTasks) {
         res.set('X-Cache', 'HIT');
@@ -243,24 +289,28 @@ app.get('/tasks', async (req, res, next) => {
     // Cache MISS: Query MongoDB
     const tasks = await Task.find().sort({ createdAt: -1 });
 
-    if (!bypassCache) {
+    if (!bypassCache && !isHateoas) {
       cache.set('all_tasks', tasks);
     }
 
     res.set('X-Cache', bypassCache ? 'BYPASS' : 'MISS');
+    if (isHateoas) {
+      return res.status(200).json(tasks.map(t => formatTaskWithHateoas(t, req)));
+    }
     res.status(200).json(tasks);
   } catch (err) {
     next(err);
   }
 });
 
-// GET /tasks/:id - Read task by MongoDB ObjectId (with single-task caching)
+// GET /tasks/:id - Read task by MongoDB ObjectId (with single-task caching & HATEOAS support)
 app.get('/tasks/:id', validateTaskId, async (req, res, next) => {
   try {
     const cacheKey = `task_${req.taskId}`;
     const bypassCache = req.query.noCache === 'true' || req.headers['cache-control'] === 'no-cache';
+    const isHateoas = req.query.hateoas === 'true';
 
-    if (!bypassCache) {
+    if (!bypassCache && !isHateoas) {
       const cachedTask = cache.get(cacheKey);
       if (cachedTask) {
         res.set('X-Cache', 'HIT');
@@ -276,18 +326,37 @@ app.get('/tasks/:id', validateTaskId, async (req, res, next) => {
       });
     }
 
-    if (!bypassCache) {
+    if (!bypassCache && !isHateoas) {
       cache.set(cacheKey, task);
     }
 
     res.set('X-Cache', bypassCache ? 'BYPASS' : 'MISS');
+    if (isHateoas) {
+      return res.status(200).json(formatTaskWithHateoas(task, req));
+    }
     res.status(200).json(task);
   } catch (err) {
     next(err);
   }
 });
 
-// POST /tasks - Create a task in MongoDB and invalidate cache
+// GET /tasks/:id/hateoas - Explicit Level 3 HATEOAS representation endpoint
+app.get('/tasks/:id/hateoas', validateTaskId, async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.taskId);
+    if (!task) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Task with ID ${req.taskId} not found.`
+      });
+    }
+    res.status(200).json(formatTaskWithHateoas(task, req));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /tasks - Create a task in MongoDB and invalidate cache (Richardson Level 2: 201 Created + Location Header)
 app.post('/tasks', async (req, res, next) => {
   try {
     const { title, description, priority, category, dueDate, assignedUser } = req.body;
@@ -315,7 +384,15 @@ app.post('/tasks', async (req, res, next) => {
     // Pedagogical Proof Point: Respond to the client immediately before event listener completes
     const apiResponseTime = new Date().toISOString();
     console.log(`[API] Response sent (201 Created) at ${apiResponseTime} for Task: "${newTask.title}"`);
-    res.status(201).json(newTask);
+    
+    // Level 2 Best Practice: Provide standard Location header pointing to newly created resource
+    res.set('Location', `/tasks/${newTask._id}`);
+    
+    if (req.query.hateoas === 'true') {
+      res.status(201).json(formatTaskWithHateoas(newTask, req));
+    } else {
+      res.status(201).json(newTask);
+    }
 
     // Asynchronous background event emission (Non-blocking notification)
     taskEvents.emit('task-created', {
