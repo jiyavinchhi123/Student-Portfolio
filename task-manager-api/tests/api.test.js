@@ -172,6 +172,23 @@ describe('Task Manager REST API & Middleware Suite (CI/CD Automated Tests)', () 
     expect(res.body).toHaveProperty('status', 'healthy');
   });
 
+  // Test 15: AI-Assisted UI Design Suggestion - POST /api/ai/design-suggestion
+  test('POST /api/ai/design-suggestion returns color scheme, font pairing, and layout improvement', async () => {
+    const res = await request(app)
+      .post('/api/ai/design-suggestion')
+      .send({ description: "task management web app" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('colors');
+    expect(res.body.colors).toHaveProperty('primary');
+    expect(res.body.colors).toHaveProperty('secondary');
+    expect(res.body.colors).toHaveProperty('background');
+    expect(res.body).toHaveProperty('fonts');
+    expect(res.body.fonts).toHaveProperty('heading');
+    expect(res.body.fonts).toHaveProperty('body');
+    expect(res.body).toHaveProperty('layoutTip');
+    expect(typeof res.body.layoutTip).toBe('string');
+  });
+
   // Cleanup: Close Mongoose database connection so Jest finishes cleanly
   afterAll(async () => {
     await mongoose.connection.close();

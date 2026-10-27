@@ -657,6 +657,33 @@ const handleAiGenerateDescription = async (req, res, next) => {
 app.post('/api/ai/generate-description', handleAiGenerateDescription);
 app.post('/ai/generate-description', handleAiGenerateDescription);
 
+// --- AI UI Design Suggestion Endpoint (Practical 15 / Assignment 7) ---
+const handleAiDesignSuggestion = async (req, res) => {
+  try {
+    const description = req.body?.description || 'task management web app';
+    const suggestion = await aiService.generateDesignSuggestion(description);
+    res.status(200).json(suggestion);
+  } catch (err) {
+    res.status(200).json({
+      fallback: true,
+      message: 'AI unavailable',
+      colors: {
+        primary: "#6366f1",
+        secondary: "#ec4899",
+        background: "#0f172a"
+      },
+      fonts: {
+        heading: "'Outfit', 'Space Grotesk', sans-serif",
+        body: "'Inter', 'Sora', sans-serif"
+      },
+      layoutTip: "Group tasks into collapsible status columns and place high-priority filters in a sticky header."
+    });
+  }
+};
+
+app.post('/api/ai/design-suggestion', handleAiDesignSuggestion);
+app.get('/api/ai/design-suggestion', handleAiDesignSuggestion);
+
 
 // Middleware to validate Education Mongoose ID
 const validateEducationId = (req, res, next) => {

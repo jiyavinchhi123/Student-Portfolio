@@ -16,6 +16,7 @@ A lightweight RESTful backend API designed with Node.js and Express.js, showcasi
 8. [Docker Containerization & Multi-Service Orchestration](#docker-containerization--multi-service-orchestration)
 9. [CI/CD Automated Testing Pipeline (GitHub Actions)](#cicd-automated-testing-pipeline-github-actions)
 10. [Blue-Green Zero-Downtime Deployment & Traffic Switching](#blue-green-zero-downtime-deployment--traffic-switching)
+11. [AI-Assisted Customized Designing & Responsible AI](#ai-assisted-customized-designing--responsible-ai)
 
 ---
 
@@ -75,6 +76,7 @@ By default, the server runs on **port 5000** (`http://localhost:5000`).
 | **GET** | `/tasks/cache/stats` | Alias for cache inspection and performance monitoring | `200 OK` |
 | **POST** | `/debug/cache/clear` | Clear/flush in-memory cache for empirical benchmarking | `200 OK` |
 | **GET** | `/version` | Returns active deployment version (`blue` or `green`), environment, and timestamp | `200 OK` |
+| **POST** | `/api/ai/design-suggestion` | Generates AI UI color schemes, typography pairings, and layout tips | `200 OK` |
 | **GET** | `/trigger-error` | Deliberately triggers a server error to test Global Error Handling | `500 Internal Server Error` |
 
 ---
@@ -401,6 +403,8 @@ For the complete architectural analysis of Monolith vs Microservices, service de
 For cloud computing service models (IaaS vs PaaS vs Serverless), container resource governance, and OOM-kill analysis with Docker Compose, see: [CLOUD.md](file:///d:/Portfolio/CLOUD.md).
 
 For blue-green zero-downtime deployment simulation, traffic cutover, rollback protocol, and comparison with rolling updates, see: [DEPLOYMENT.md](file:///d:/Portfolio/DEPLOYMENT.md).
+
+For AI-assisted customized designing, prompt engineering, WCAG 2.1 AA contrast verification, and Responsible AI evaluation, see: [AIDESIGN.md](file:///d:/Portfolio/AIDESIGN.md).
 
 
 

@@ -175,8 +175,125 @@ Respond STRICTLY in valid JSON format:
   return generateFallbackSuggestion(cleanTitle);
 }
 
+/**
+ * AI-Assisted UI Design Suggestion Generator (Practical 15 / Assignment 7)
+ * Generates color scheme, font pairing, and layout improvement tips.
+ */
+async function generateDesignSuggestion(appDescription = 'task management web app') {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  const prompt = `Suggest a color scheme, font pairing, and one layout improvement for a ${appDescription}. Return as JSON with keys:
+colors: { primary, secondary, background, card, accent },
+fonts: { heading, body },
+layoutTip: string
+
+Return ONLY valid JSON, no markdown formatting.`;
+
+  // 1. Try OpenAI API if key is present
+  if (openaiKey && openaiKey !== 'your_key_here' && openaiKey.startsWith('sk-')) {
+    try {
+      const client = new OpenAI({ apiKey: openaiKey });
+      const completion = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        response_format: { type: 'json_object' },
+        max_tokens: 300,
+        temperature: 0.7
+      });
+      const parsed = JSON.parse(completion.choices[0].message.content);
+      return {
+        colors: parsed.colors || {
+          primary: "#6366f1",
+          secondary: "#ec4899",
+          background: "#0f172a",
+          card: "#1e293b",
+          accent: "#06b6d4"
+        },
+        fonts: parsed.fonts || {
+          heading: "'Outfit', 'Space Grotesk', sans-serif",
+          body: "'Inter', 'Sora', sans-serif"
+        },
+        layoutTip: parsed.layoutTip || "Implement a sticky quick-action toolbar with contrast-checked category badges.",
+        source: "openai-gpt-4o-mini",
+        fallback: false,
+        disclaimer: "AI-generated design suggestion. Review WCAG contrast ratios before production deployment."
+      };
+    } catch (apiErr) {
+      console.warn(`[AI Design:OpenAI Error] ${apiErr.message}. Activating Graceful Fallback...`);
+    }
+  }
+
+  // 2. Try Gemini API if key is present
+  if (geminiKey && geminiKey !== 'your_gemini_key_here') {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${prompt} Return strictly valid JSON object.` }] }]
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            colors: parsed.colors || {
+              primary: "#6366f1",
+              secondary: "#ec4899",
+              background: "#0f172a",
+              card: "#1e293b",
+              accent: "#06b6d4"
+            },
+            fonts: parsed.fonts || {
+              heading: "'Outfit', 'Space Grotesk', sans-serif",
+              body: "'Inter', 'Sora', sans-serif"
+            },
+            layoutTip: parsed.layoutTip || "Implement a sticky quick-action toolbar with contrast-checked category badges.",
+            source: "gemini-1.5-flash",
+            fallback: false,
+            disclaimer: "AI-generated design suggestion. Review WCAG contrast ratios before production deployment."
+          };
+        }
+      }
+    } catch (geminiErr) {
+      console.warn(`[AI Design:Gemini Error] ${geminiErr.message}. Activating Graceful Fallback...`);
+    }
+  }
+
+  // 3. Graceful Curated Fallback
+  return {
+    colors: {
+      primary: "#6366f1",
+      secondary: "#ec4899",
+      background: "#0f172a",
+      card: "#1e293b",
+      accent: "#06b6d4"
+    },
+    fonts: {
+      heading: "'Outfit', 'Space Grotesk', sans-serif",
+      body: "'Inter', 'Sora', sans-serif"
+    },
+    layoutTip: "Group tasks into collapsible status columns (Kanban style) and place high-priority filters in a sticky header to optimize visual scanability.",
+    source: "curated-preset",
+    fallback: true,
+    message: "AI unavailable - using curated accessible design preset",
+    disclaimer: "Curated responsive design preset. Review WCAG contrast ratios before production deployment."
+  };
+}
+
 module.exports = {
   generateTaskDescription,
   generateFallbackSuggestion,
+  generateDesignSuggestion,
   checkRateLimit
 };
