@@ -394,6 +394,8 @@ For full details on the STRIDE Threat Model, local TLS/HTTPS setup with mkcert, 
 
 For full empirical performance benchmarks measuring RPS, latency, and error rates with Apache Bench across standard and high-concurrency loads, see: [LOADTEST.md](file:///d:/Portfolio/LOADTEST.md).
 
+For the complete architectural analysis of Monolith vs Microservices, service decomposition proposals, trade-offs, and stateless horizontal autoscaling with JWT, see: [ARCHITECTURE.md](file:///d:/Portfolio/ARCHITECTURE.md).
+
 
 
 
