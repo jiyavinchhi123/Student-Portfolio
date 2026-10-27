@@ -49,6 +49,7 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **Application Security & STRIDE Threat Modeling**: Security hardening with STRIDE threat modeling, local TLS/HTTPS encryption with mkcert on port 5443, and NoSQL injection defense via `express-mongo-sanitize` (Detailed in [SECURITY.md](file:///d:/Portfolio/SECURITY.md)).
 - **Performance Load Testing & Scalability Benchmarks (Apache Bench)**: Measured RPS, mean latency, and error rates with and without in-memory caching under 10 and 50 concurrency loads with 50 seeded documents (Detailed in [LOADTEST.md](file:///d:/Portfolio/LOADTEST.md)).
 - **Software Architecture Analysis (Monolith vs. Microservices & Stateless Design)**: Comprehensive architectural decomposition into 4 microservices, trade-off matrix, 5th-semester project decision justification, and stateless horizontal scaling with JWT (Detailed in [ARCHITECTURE.md](file:///d:/Portfolio/ARCHITECTURE.md)).
+- **Cloud Computing Models & Docker Resource Limits (IaaS vs. PaaS vs. Serverless)**: Theoretical service model evaluation, mapping Docker Compose to PaaS/CaaS, and configuring CPU (0.5) & Memory (256M) resource governance with OOM-kill analysis (Detailed in [CLOUD.md](file:///d:/Portfolio/CLOUD.md)).
 
 ---
 

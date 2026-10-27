@@ -396,6 +396,8 @@ For full empirical performance benchmarks measuring RPS, latency, and error rate
 
 For the complete architectural analysis of Monolith vs Microservices, service decomposition proposals, trade-offs, and stateless horizontal autoscaling with JWT, see: [ARCHITECTURE.md](file:///d:/Portfolio/ARCHITECTURE.md).
 
+For cloud computing service models (IaaS vs PaaS vs Serverless), container resource governance, and OOM-kill analysis with Docker Compose, see: [CLOUD.md](file:///d:/Portfolio/CLOUD.md).
+
 
 
 

@@ -18,6 +18,14 @@ services:
       - mongo-data:/data/db
     networks:
       - app-network
+    # Resource Limits for Database Service
+    mem_limit: 512m
+    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
 
   # ----------------------------------------------------------------------------
   # 2. Backend Service: Node.js / Express REST API (with In-Memory Caching & EventEmitter)
@@ -38,6 +46,18 @@ services:
       - mongodb
     networks:
       - app-network
+    # Resource Limits (Cloud Computing: Memory & CPU Constraints)
+    # Works across both Compose standalone (mem_limit/cpus) and Swarm (deploy.resources)
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
 
   # ----------------------------------------------------------------------------
   # 3. Frontend Service: React + Vite Portfolio Dashboard
@@ -54,6 +74,14 @@ services:
       - backend
     networks:
       - app-network
+    # Resource Limits for Frontend Service
+    mem_limit: 128m
+    cpus: 0.25
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
 
 # ------------------------------------------------------------------------------
 # Isolated Bridge Network for Inter-Container Communication & Service Discovery
