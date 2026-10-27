@@ -1105,10 +1105,18 @@ if (require.main === module) {
   const fs = require('fs');
   const https = require('https');
   const path = require('path');
-  const keyPath = path.join(__dirname, 'localhost-key.pem');
-  const certPath = path.join(__dirname, 'localhost.pem');
+  const keyCandidates = [
+    path.join(__dirname, 'localhost-key.pem'),
+    path.join(__dirname, 'localhost+2-key.pem')
+  ];
+  const certCandidates = [
+    path.join(__dirname, 'localhost.pem'),
+    path.join(__dirname, 'localhost+2.pem')
+  ];
+  const keyPath = keyCandidates.find(p => fs.existsSync(p));
+  const certPath = certCandidates.find(p => fs.existsSync(p));
 
-  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  if (keyPath && certPath) {
     try {
       const sslOptions = {
         key: fs.readFileSync(keyPath),

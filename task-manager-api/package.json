@@ -8,7 +8,9 @@
     "dev": "node server.js",
     "test": "jest --detectOpenHandles --forceExit",
     "test:cache": "node test_cache.js",
-    "test:events": "node test_events.js"
+    "test:events": "node test_events.js",
+    "seed": "node seed_tasks.js",
+    "loadtest": "node benchmark_load.js"
   },
   "keywords": [
     "express",

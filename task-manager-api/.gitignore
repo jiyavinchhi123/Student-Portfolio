@@ -10,3 +10,4 @@ node_modules/
 *.key
 *.crt
 certs/
+*.exe

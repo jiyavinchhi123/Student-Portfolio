@@ -392,6 +392,8 @@ For the full architectural evaluation of the API against the Richardson Maturity
 
 For full details on the STRIDE Threat Model, local TLS/HTTPS setup with mkcert, and NoSQL injection prevention with express-mongo-sanitize, see: [SECURITY.md](file:///d:/Portfolio/SECURITY.md).
 
+For full empirical performance benchmarks measuring RPS, latency, and error rates with Apache Bench across standard and high-concurrency loads, see: [LOADTEST.md](file:///d:/Portfolio/LOADTEST.md).
+
 
 
 

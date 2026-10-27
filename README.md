@@ -47,6 +47,7 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **External AI Service Integration & Responsible AI (Practical 13)**: Backend proxy endpoint `/api/ai/generate-description` integrating OpenAI `gpt-4o-mini` and Google Gemini. Features server-side secret isolation, 15-second rate-limiting, human-in-the-loop review, and graceful degradation fallback (Detailed in [AI_INTEGRATION_REPORT.md](file:///d:/Portfolio/AI_INTEGRATION_REPORT.md)).
 - **Richardson Maturity Model (RMM) Evaluation & HATEOAS**: Evaluated and upgraded the RESTful API to Level 2 (HTTP verbs, granular status codes, and RFC 7231 `Location` header) with functional Level 3 HATEOAS hypermedia links (Detailed in [MATURITY.md](file:///d:/Portfolio/MATURITY.md)).
 - **Application Security & STRIDE Threat Modeling**: Security hardening with STRIDE threat modeling, local TLS/HTTPS encryption with mkcert on port 5443, and NoSQL injection defense via `express-mongo-sanitize` (Detailed in [SECURITY.md](file:///d:/Portfolio/SECURITY.md)).
+- **Performance Load Testing & Scalability Benchmarks (Apache Bench)**: Measured RPS, mean latency, and error rates with and without in-memory caching under 10 and 50 concurrency loads with 50 seeded documents (Detailed in [LOADTEST.md](file:///d:/Portfolio/LOADTEST.md)).
 
 ---
 
