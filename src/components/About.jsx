@@ -1,21 +1,35 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiPlus, FiCamera, FiUpload } from "react-icons/fi";
 import profile from "../assets/Profile.jpeg";
 import SectionTitle from "./SectionTitle";
 import EditModal from "./EditModal";
 
 const SERVER_URL = "http://localhost:5000";
 
+const defaultEducationList = [
+  {
+    _id: "default-edu-1",
+    degree: "BTech in Information Technology",
+    college: "Charotar University of Science and Technology (CHARUSAT)",
+    branch: "Information Technology",
+    startYear: "2023",
+    graduationYear: "2027",
+    description: "Building a strong foundation in software development, Data Structures, Algorithms, and modern web technologies."
+  }
+];
+
 export default function About({ isAdmin }) {
   const [aboutData, setAboutData] = useState({
     description: "Hi, I'm Jiya, a passionate Software Developer currently pursuing my BTech in Information Technology from Charotar University of Science and Technology (CHARUSAT). I am in my second year, building a strong foundation in software development and core computer science concepts.",
     careerObjective: "I enjoy creating real-world applications that solve meaningful problems and love working with modern technologies. Problem-solving, especially in Data Structures and Algorithms, is something I genuinely enjoy as it combines logic with creativity.",
+    continuousLearning: "I am always eager to learn, explore new technologies, and continuously improve my skills while working towards becoming a skilled developer who can contribute to impactful and innovative projects.",
     interests: ["Problem Solving", "Data Structures", "Algorithms", "Web Development"]
   });
 
   const [profilePhoto, setProfilePhoto] = useState(profile);
-  const [educationList, setEducationList] = useState([]);
+  const [bioPhoto, setBioPhoto] = useState(null);
+  const [educationList, setEducationList] = useState(defaultEducationList);
 
   // Modal open states
   const [isBioModalOpen, setIsBioModalOpen] = useState(false);
@@ -27,6 +41,38 @@ export default function About({ isAdmin }) {
     careerObjective: "",
     interestsText: ""
   });
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      setBioPhoto(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDirectAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target.result;
+      setProfilePhoto(base64);
+      setBioPhoto(base64);
+      try {
+        await fetch(`${SERVER_URL}/portfolio/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profilePhotoUrl: base64 })
+        });
+      } catch (err) {
+        console.error("Failed to save avatar photo:", err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [editingEduId, setEditingEduId] = useState(null);
   const [eduForm, setEduForm] = useState({
@@ -45,11 +91,17 @@ export default function About({ isAdmin }) {
       })
       .then(data => {
         if (data) {
-          setAboutData(data);
+          setAboutData(prev => ({
+            ...prev,
+            ...data,
+            description: data.description || prev.description,
+            careerObjective: data.careerObjective || prev.careerObjective,
+            interests: data.interests?.length ? data.interests : prev.interests
+          }));
           setBioForm({
-            description: data.description || "",
-            careerObjective: data.careerObjective || "",
-            interestsText: data.interests?.join(", ") || ""
+            description: data.description || aboutData.description,
+            careerObjective: data.careerObjective || aboutData.careerObjective,
+            interestsText: data.interests?.join(", ") || aboutData.interests?.join(", ")
           });
         }
       })
@@ -62,7 +114,7 @@ export default function About({ isAdmin }) {
         if (res.ok) return res.json();
       })
       .then(data => {
-        if (data) setEducationList(data);
+        if (data && data.length > 0) setEducationList(data);
       })
       .catch(err => console.error("Error loading education list:", err));
   };
@@ -99,6 +151,17 @@ export default function About({ isAdmin }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
+      if (bioPhoto) {
+        setProfilePhoto(bioPhoto);
+        try {
+          await fetch(`${SERVER_URL}/portfolio/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profilePhotoUrl: bioPhoto })
+          });
+        } catch (_) {}
+      }
 
       if (res.ok) {
         setIsBioModalOpen(false);
@@ -207,6 +270,20 @@ export default function About({ isAdmin }) {
                   e.target.src = profile;
                 }}
               />
+              {isAdmin && (
+                <label
+                  title="Upload JPG Photo"
+                  className="absolute bottom-2 right-2 p-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-xl cursor-pointer transition transform hover:scale-110 flex items-center justify-center z-10 border-2 border-white dark:border-black"
+                >
+                  <FiCamera size={18} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleDirectAvatarUpload}
+                  />
+                </label>
+              )}
             </div>
           </motion.div>
 
@@ -214,16 +291,14 @@ export default function About({ isAdmin }) {
           <div className="grid gap-6 md:order-1">
             <div className="space-y-4 font-sans leading-relaxed">
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-white/80">
-                <span className="text-2xl sm:text-3xl md:text-4xl font-semibold text-blue-600 dark:text-blue-400">Hi, I'm Jiya</span>, a passionate Software Developer.
+                <span className="text-2xl sm:text-3xl md:text-4xl font-semibold text-blue-600 dark:text-blue-400">Hi, I'm Jiya</span>, a passionate Software Developer currently pursuing my BTech in Information Technology from Charotar University of Science and Technology (CHARUSAT). I am in my second year, building a strong foundation in software development and core computer science concepts.
               </p>
               <p className="text-slate-700 dark:text-white/80">
-                {aboutData.description}
+                {aboutData.careerObjective || "I enjoy creating real-world applications that solve meaningful problems and love working with modern technologies. Problem-solving, especially in Data Structures and Algorithms, is something I genuinely enjoy as it combines logic with creativity."}
               </p>
-              {aboutData.careerObjective && (
-                <p className="text-slate-700 dark:text-white/80">
-                  <strong>Career Objective:</strong> {aboutData.careerObjective}
-                </p>
-              )}
+              <p className="text-slate-700 dark:text-white/80">
+                {aboutData.continuousLearning || "I am always eager to learn, explore new technologies, and continuously improve my skills while working towards becoming a skilled developer who can contribute to impactful and innovative projects."}
+              </p>
             </div>
           </div>
         </div>
@@ -333,6 +408,32 @@ export default function About({ isAdmin }) {
               rows="3"
               className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Profile Photo (Upload JPG / Image File)
+            </label>
+            <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <img
+                src={bioPhoto || profilePhoto}
+                alt="Preview"
+                className="w-14 h-14 rounded-full object-cover border border-slate-300 dark:border-white/20 shrink-0"
+              />
+              <div className="flex flex-col gap-1 flex-grow">
+                <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white cursor-pointer transition shadow-sm w-fit">
+                  <FiUpload /> Upload JPG File
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {bioPhoto ? "✓ New JPG image selected" : "Choose a .jpg or .jpeg file from your device"}
+                </span>
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Interests (comma-separated)</label>

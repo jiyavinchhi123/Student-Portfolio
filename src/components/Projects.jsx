@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { FiEdit2, FiTrash2, FiPlus, FiCheck } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiUpload, FiImage, FiX } from "react-icons/fi";
 import finliteImg from "../assets/projects/FinLite.png";
 import formfluxImg from "../assets/projects/FormFlux.png";
 import resumefitImg from "../assets/projects/ResumeFit.png";
@@ -18,8 +18,33 @@ const imageMap = {
   resumefitImg: resumefitImg,
   finliteImg: finliteImg,
   formfluxImg: formfluxImg,
-  taskmanagerImg: taskmanagerImg
+  taskmanagerImg: taskmanagerImg,
+  "SiyaRang.png": siyarangImg,
+  "ResumeFit.png": resumefitImg,
+  "FinLite.png": finliteImg,
+  "FormFlux.png": formfluxImg,
+  "TaskManager.png": taskmanagerImg,
+  SiyaRang: siyarangImg,
+  ResumeFit: resumefitImg,
+  FinLite: finliteImg,
+  FormFlux: formfluxImg,
+  TaskManager: taskmanagerImg
 };
+
+function getProjectImage(project) {
+  if (!project) return taskmanagerImg;
+  if (project.image && imageMap[project.image]) return imageMap[project.image];
+  if (typeof project.image === "string" && (project.image.startsWith("http") || project.image.startsWith("/assets") || project.image.startsWith("data:"))) {
+    return project.image;
+  }
+  const name = (project.name || "").toLowerCase();
+  if (name.includes("siya") || name.includes("bandh")) return siyarangImg;
+  if (name.includes("resume") || name.includes("job")) return resumefitImg;
+  if (name.includes("finlite") || name.includes("finance")) return finliteImg;
+  if (name.includes("formflux") || name.includes("form")) return formfluxImg;
+  if (name.includes("task") || name.includes("api")) return taskmanagerImg;
+  return taskmanagerImg;
+}
 
 function TechBadges({ items }) {
   return (
@@ -36,7 +61,7 @@ function TechBadges({ items }) {
   );
 }
 
-function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdmin, onEdit, onDelete, onToggleMilestone }) {
+function FeaturedProjectCard({ project, isAdmin, onEdit, onDelete, onToggleMilestone }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const isLocalDemo = project.demo && project.demo.startsWith("/");
 
@@ -58,10 +83,10 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdm
   };
 
   const embedUrl = getEmbedUrl(project.demo);
-  const displayImage = imageMap[project.image] || project.image || taskmanagerImg;
+  const displayImage = getProjectImage(project);
 
   return (
-    <div className="relative w-full h-[620px] sm:h-[580px] lg:h-[450px] [perspective:1500px]">
+    <div className="relative w-full min-h-[580px] sm:min-h-[520px] lg:h-[460px] [perspective:1500px]">
       <motion.div
         className="w-full h-full relative [transform-style:preserve-3d] transition-transform duration-700 ease-in-out"
         style={{
@@ -70,10 +95,8 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdm
       >
         {/* Front Side */}
         <div
-          className="absolute inset-0 w-full h-full rounded-2xl bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-[0_16px_32px_rgba(15,23,42,0.08)] p-4 sm:p-6 lg:p-8 grid lg:grid-cols-2 gap-6 lg:gap-8 items-center transition-all duration-300 ease-out overflow-hidden"
+          className="absolute inset-0 w-full h-full rounded-2xl bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-[0_16px_32px_rgba(15,23,42,0.08)] hover:shadow-[0_20px_40px_rgba(59,130,246,0.12)] hover:border-blue-500/30 dark:hover:border-blue-400/30 p-5 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center transition-all duration-300 ease-out overflow-y-auto lg:overflow-hidden"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
         >
           {/* Admin Edit/Delete */}
           {isAdmin && (
@@ -126,29 +149,6 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdm
               ))}
             </ul>
 
-            {/* Recruiter Milestones Display */}
-            {project.milestones && project.milestones.length > 0 && (
-              <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Technical Task Progress:</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                  {project.milestones.map((milestone, idx) => (
-                    <label key={idx} className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={milestone.completed}
-                        disabled={!isAdmin}
-                        onChange={() => onToggleMilestone(project, idx)}
-                        className="rounded text-blue-500 bg-slate-100 border-slate-300 dark:bg-white/5 dark:border-white/10"
-                      />
-                      <span className={milestone.completed ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-300"}>
-                        {milestone.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               {isLocalDemo ? (
                 <Link
@@ -178,12 +178,12 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdm
               )}
             </div>
           </div>
-          <div className="relative group hidden lg:block">
+          <div className="relative group w-full flex items-center justify-center">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/15 to-blue-600/5 blur-2xl dark:from-blue-500/10 dark:to-blue-600/5" />
             <img
               src={displayImage}
               alt={project.name}
-              className="relative rounded-2xl w-full h-48 sm:h-64 object-cover shadow-lg dark:shadow-none"
+              className="relative rounded-2xl w-full max-h-48 sm:max-h-60 lg:h-64 object-cover shadow-lg dark:shadow-none border border-slate-200/50 dark:border-white/10"
             />
           </div>
         </div>
@@ -247,6 +247,53 @@ function FeaturedProjectCard({ project, handleMouseMove, handleMouseLeave, isAdm
   );
 }
 
+const defaultFeaturedProjects = [
+  {
+    _id: "default-proj-1",
+    name: "SiyaRang",
+    description: "Customized e-commerce platform for a Bandhani store.",
+    tech: ["HTML", "CSS", "JS", "Python"],
+    features: ["Product catalog", "Custom UI", "Secure storage"],
+    demo: "https://www.youtube.com/watch?v=FVvFQQ20D3M",
+    repo: "https://github.com/jiyavinchhi123/SiyaRang-Bandhej",
+    image: "siyarangImg"
+  },
+  {
+    _id: "default-proj-2",
+    name: "ResumeFit",
+    description: "Resume-to-job fit scoring with actionable improvements.",
+    tech: ["Java", "Python", "Supabase"],
+    features: ["Score out of 100", "Suggestions", "Trial model"],
+    demo: "https://www.youtube.com/watch?v=wBWmEWm8Bvg",
+    repo: "https://github.com/jiyavinchhi123/Job-Fit-Score",
+    image: "resumefitImg"
+  },
+  {
+    _id: "default-proj-3",
+    name: "FinLite",
+    description: "Smart finance manager built for modern business owners with automated insights and beautiful reporting.",
+    tech: ["React", "Spring Boot", "Supabase", "Python", "Charts"],
+    features: [
+      "Auto PDF balance sheet generation",
+      "Smart predictions with interactive charts",
+      "Guided, user-friendly workflows"
+    ],
+    demo: "https://www.youtube.com/watch?v=TQz-BSR0Dv4&t=15s",
+    repo: "https://github.com/jiyavinchhi123/FinLite",
+    image: "finliteImg"
+  },
+  {
+    _id: "default-proj-4",
+    name: "FormFlux",
+    description: "Dynamic form generator with database integration.",
+    tech: ["MongoDB", "Java", "JS"],
+    features: ["Auto DB creation", "Response tracking", "XLSX export"],
+    demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
+    repo: "https://github.com/jiyavinchhi123/FormFlux",
+    image: "formfluxImg"
+  }
+];
+
 export default function Projects({ isAdmin }) {
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -255,7 +302,7 @@ export default function Projects({ isAdmin }) {
   const [retryTrigger, setRetryTrigger] = useState(0);
 
   // Db Projects state
-  const [dbProjects, setDbProjects] = useState([]);
+  const [dbProjects, setDbProjects] = useState(defaultFeaturedProjects);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProjId, setEditingProjId] = useState(null);
   const [projForm, setProjForm] = useState({
@@ -269,13 +316,50 @@ export default function Projects({ isAdmin }) {
     milestonesText: ""
   });
 
+  const mergeProjects = (fetched) => {
+    const cleanFetched = (fetched || []).filter(
+      (f) => !f.name?.toLowerCase().includes("task manager")
+    );
+    if (!cleanFetched || cleanFetched.length === 0) {
+      return defaultFeaturedProjects;
+    }
+    const merged = defaultFeaturedProjects.map((defProj) => {
+      const match = cleanFetched.find(
+        (f) => f.name && f.name.trim().toLowerCase() === defProj.name.trim().toLowerCase()
+      );
+      if (match) {
+        return {
+          ...defProj,
+          ...match,
+          image: match.image && match.image.trim() !== "" ? match.image : defProj.image,
+          demo: match.demo || defProj.demo,
+          repo: match.repo || defProj.repo
+        };
+      }
+      return defProj;
+    });
+
+    cleanFetched.forEach((f) => {
+      const isDefault = defaultFeaturedProjects.some(
+        (def) => def.name.trim().toLowerCase() === f.name?.trim().toLowerCase()
+      );
+      if (!isDefault) {
+        merged.push(f);
+      }
+    });
+
+    return merged.filter((p) => !p.name?.toLowerCase().includes("task manager"));
+  };
+
   const fetchDbProjects = () => {
     fetch(`${SERVER_URL}/portfolio/projects`)
       .then(res => {
         if (res.ok) return res.json();
       })
       .then(data => {
-        if (data) setDbProjects(data);
+        if (data && Array.isArray(data)) {
+          setDbProjects(mergeProjects(data));
+        }
       })
       .catch(err => console.error("Error loading database projects:", err));
   };
@@ -297,6 +381,19 @@ export default function Projects({ isAdmin }) {
       milestonesText: proj.milestones?.map(m => `${m.label}:${m.completed}`).join(", ") || ""
     });
     setIsModalOpen(true);
+  };
+
+  const handleProjectPhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setProjForm((prev) => ({
+        ...prev,
+        image: event.target.result
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDelete = async (id) => {
@@ -378,26 +475,6 @@ export default function Projects({ isAdmin }) {
     }
   };
 
-  // Premium 3D tilt handler
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const xc = rect.width / 2;
-    const yc = rect.height / 2;
-    const rotateY = ((x - xc) / xc) * 7; // max 7 deg
-    const rotateX = -((y - yc) / yc) * 7; // max 7 deg
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
-    card.style.boxShadow = "0 20px 30px rgba(59, 130, 246, 0.2)";
-  };
-
-  const handleMouseLeave = (e) => {
-    const card = e.currentTarget;
-    card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
-    card.style.boxShadow = "";
-  };
-
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -473,18 +550,18 @@ export default function Projects({ isAdmin }) {
 
         {/* Featured Projects Grid */}
         <div className="space-y-8 sm:space-y-12">
-          {dbProjects.map((project) => (
-            <FeaturedProjectCard
-              key={project._id}
-              project={project}
-              handleMouseMove={handleMouseMove}
-              handleMouseLeave={handleMouseLeave}
-              isAdmin={isAdmin}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggleMilestone={handleToggleMilestone}
-            />
-          ))}
+          {dbProjects
+            .filter((project) => !project.name?.toLowerCase().includes("task manager"))
+            .map((project) => (
+              <FeaturedProjectCard
+                key={project._id}
+                project={project}
+                isAdmin={isAdmin}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleMilestone={handleToggleMilestone}
+              />
+            ))}
         </div>
 
         {/* Dynamic GitHub Repositories Section */}
@@ -630,34 +707,73 @@ export default function Projects({ isAdmin }) {
               placeholder="Auto PDF generation&#10;Balance sheets"
             />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Demo link</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Demo link</label>
               <input
                 type="text"
                 value={projForm.demo}
                 onChange={(e) => setProjForm({ ...projForm, demo: e.target.value })}
                 className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
+                placeholder="https://..."
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">GitHub Link</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">GitHub Link</label>
               <input
                 type="text"
                 value={projForm.repo}
                 onChange={(e) => setProjForm({ ...projForm, repo: e.target.value })}
                 className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
+                placeholder="https://github.com/..."
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Image Key</label>
-              <input
-                type="text"
-                value={projForm.image}
-                onChange={(e) => setProjForm({ ...projForm, image: e.target.value })}
-                className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs focus:outline-none"
-                placeholder="e.g. siyarangImg"
-              />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Project Photo (Upload Image File)
+            </label>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              {projForm.image ? (
+                <div className="relative group/projimg shrink-0">
+                  <img
+                    src={getProjectImage({ image: projForm.image, name: projForm.name })}
+                    alt="Project preview"
+                    className="w-14 h-14 rounded-lg object-cover border border-slate-300 dark:border-white/20 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setProjForm((prev) => ({ ...prev, image: "" }))}
+                    className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white rounded-full p-0.5 shadow transition"
+                    title="Remove photo"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 dark:border-white/20 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                  <FiImage size={20} />
+                </div>
+              )}
+              <div className="flex flex-col gap-1.5 flex-grow">
+                <label className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white cursor-pointer transition shadow-sm w-fit">
+                  <FiUpload size={14} /> {projForm.image ? "Change Photo" : "Upload Photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProjectPhotoUpload}
+                  />
+                </label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {projForm.image
+                    ? (typeof projForm.image === "string" && projForm.image.startsWith("data:")
+                      ? "✓ Custom photo uploaded"
+                      : "Using project image")
+                    : "Upload JPG, PNG, or WebP screenshot"}
+                </span>
+              </div>
             </div>
           </div>
           <div>

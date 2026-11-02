@@ -104,15 +104,15 @@ export default function App() {
       <main className="flex-grow">
         <Suspense fallback={<RouteFallback theme={theme} />}>
           <Routes>
-            <Route path="/" element={<Home theme={theme} isAdmin={isAdmin} />} />
+            <Route path="/" element={<Home theme={theme} isAdmin={isAdmin} skillList={skillList} />} />
             <Route path="/about" element={<About isAdmin={isAdmin} />} />
             <Route path="/skills" element={<Skills skillList={skillList} isAdmin={isAdmin} />} />
             <Route path="/achievements" element={<Achievements isAdmin={isAdmin} />} />
             <Route path="/projects" element={<Projects isAdmin={isAdmin} />} />
-            <Route path="/projects/task-manager" element={<TaskManagerDemo />} />
+            <Route path="/projects/task-manager" element={<TaskManagerDemo isAdmin={isAdmin} />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<AdminLogin onLoginSuccess={() => { setIsAdmin(true); window.location.href = "/"; }} />} />
-            <Route path="/tasks" element={isAdmin ? <TaskManagerDemo /> : <Navigate to="/login" />} />
+            <Route path="/tasks" element={<TaskManagerDemo isAdmin={isAdmin} />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

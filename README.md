@@ -51,6 +51,7 @@ A premium, modern React portfolio application built with Vite and Tailwind CSS. 
 - **Software Architecture Analysis (Monolith vs. Microservices & Stateless Design)**: Comprehensive architectural decomposition into 4 microservices, trade-off matrix, 5th-semester project decision justification, and stateless horizontal scaling with JWT (Detailed in [ARCHITECTURE.md](file:///d:/Portfolio/ARCHITECTURE.md)).
 - **Cloud Computing Models & Docker Resource Limits (IaaS vs. PaaS vs. Serverless)**: Theoretical service model evaluation, mapping Docker Compose to PaaS/CaaS, and configuring CPU (0.5) & Memory (256M) resource governance with OOM-kill analysis (Detailed in [CLOUD.md](file:///d:/Portfolio/CLOUD.md)).
 - **Blue-Green Zero-Downtime Deployment & Traffic Switching (Docker Compose)**: Multi-version simultaneous container execution (`backend-blue` on port 5000 and `backend-green` on port 5001), real-time client-side / reverse-proxy traffic cutover, automated health introspection via `/version`, instant zero-downtime rollback, and comparative analysis against Rolling Updates (Detailed in [DEPLOYMENT.md](file:///d:/Portfolio/DEPLOYMENT.md)).
+- **AI-Assisted Customized Designing & Responsible AI Evaluation (OpenAI & Gemini)**: Dynamic prompt engineering for UI color palettes, typography pairings, and layout improvements via `/api/ai/design-suggestion`, global `:root` CSS custom property cascade, automated WCAG 2.1 AA relative luminance contrast validation, and Human-in-the-Loop review (Detailed in [AIDESIGN.md](file:///d:/Portfolio/AIDESIGN.md)).
 
 ---
 

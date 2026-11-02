@@ -5,13 +5,29 @@ const educationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  college: {
+    type: String,
+    default: ''
+  },
   institution: {
     type: String,
-    required: true
+    default: ''
+  },
+  branch: {
+    type: String,
+    default: ''
+  },
+  startYear: {
+    type: String,
+    default: ''
+  },
+  graduationYear: {
+    type: String,
+    default: ''
   },
   year: {
     type: String,
-    required: true
+    default: ''
   },
   description: {
     type: String,

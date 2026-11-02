@@ -9,16 +9,58 @@
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(15, 23, 42, 0.12);
   --glow: rgba(59, 130, 246, 0.28);
+
+  /* AI-Assisted UI Design Custom Properties (Practical 15 / Assignment 7) */
+  --ai-primary: #4f46e5;
+  --ai-secondary: #db2777;
+  --ai-background: #f8fafc;
+  --ai-card: #ffffff;
+  --ai-accent: #0284c7;
+  --ai-font-heading: 'Space Grotesk', 'Outfit', sans-serif;
+  --ai-font-body: 'Sora', 'Inter', sans-serif;
 }
 
 .dark {
   --glass-bg: rgba(17, 24, 39, 0.6);
   --glass-border: rgba(148, 163, 184, 0.15);
   --glow: rgba(59, 130, 246, 0.35);
+
+  /* Dark mode defaults for AI design tokens */
+  --ai-primary: #6366f1;
+  --ai-secondary: #ec4899;
+  --ai-background: #0f172a;
+  --ai-card: #1e293b;
+  --ai-accent: #06b6d4;
 }
 
 .dark body {
   background-color: #000000;
+}
+
+/* AI Design Dynamic Utilities */
+.ai-theme-active .ai-primary-bg {
+  background-color: var(--ai-primary) !important;
+}
+.ai-theme-active .ai-primary-text {
+  color: var(--ai-primary) !important;
+}
+.ai-theme-active .ai-primary-border {
+  border-color: var(--ai-primary) !important;
+}
+.ai-theme-active .ai-secondary-bg {
+  background-color: var(--ai-secondary) !important;
+}
+.ai-theme-active .ai-secondary-text {
+  color: var(--ai-secondary) !important;
+}
+.ai-theme-active .ai-card-bg {
+  background-color: var(--ai-card) !important;
+}
+.ai-theme-active .ai-font-heading {
+  font-family: var(--ai-font-heading) !important;
+}
+.ai-theme-active .ai-font-body {
+  font-family: var(--ai-font-body) !important;
 }
 
 html {

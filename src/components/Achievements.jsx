@@ -12,14 +12,17 @@ const iconMap = {
   FiTrendingUp: FiTrendingUp
 };
 
-const container = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } }
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 }
+  }
 };
 
-const item = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
 };
 
 // Premium 3D tilt handlers
@@ -45,7 +48,7 @@ const handleMouseLeave = (e) => {
 function StatCard({ value, label, isAdmin, onEdit, onDelete, ach }) {
   return (
     <motion.div
-      variants={item}
+      variants={itemVariants}
       className="glass rounded-2xl p-5 text-center border border-slate-200/60 dark:border-white/10 shadow-[0_0_24px_rgba(59,130,246,0.15)] dark:shadow-[0_0_24px_rgba(59,130,246,0.25)] transition-all duration-300 ease-out cursor-pointer relative group/stat"
       whileTap={{ scale: 0.98 }}
       onMouseMove={handleMouseMove}
@@ -57,15 +60,9 @@ function StatCard({ value, label, isAdmin, onEdit, onDelete, ach }) {
           <button onClick={(e) => { e.stopPropagation(); onDelete(ach._id); }} className="p-1 hover:text-red-500 transition"><FiTrash2 size={11} /></button>
         </div>
       )}
-      <motion.div
-        className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white font-sans"
-        initial={{ scale: 0.9 }}
-        whileInView={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 100, damping: 10 }}
-        viewport={{ once: true }}
-      >
+      <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white font-sans">
         {value}
-      </motion.div>
+      </div>
       <div className="mt-1 text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-semibold font-sans">
         {label}
       </div>
@@ -77,7 +74,7 @@ function AchievementCard({ title, description, icon: IconKey, isAdmin, onEdit, o
   const Icon = iconMap[IconKey] || FiAward;
   return (
     <motion.div
-      variants={item}
+      variants={itemVariants}
       className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl p-5 shadow-[0_0_24px_rgba(59,130,246,0.15)] dark:shadow-[0_0_24px_rgba(59,130,246,0.25)] transition-all duration-300 ease-out cursor-pointer group relative"
       whileHover="hovered"
       onMouseMove={handleMouseMove}
@@ -119,8 +116,24 @@ function AchievementCard({ title, description, icon: IconKey, isAdmin, onEdit, o
   );
 }
 
+const defaultStats = [
+  { _id: "def-stat-1", type: "stat", value: "130+", label: "Problems Solved" },
+  { _id: "def-stat-2", type: "stat", value: "Top 5%", label: "NPTEL" },
+  { _id: "def-stat-3", type: "stat", value: "996", label: "CodeChef Rating" },
+  { _id: "def-stat-4", type: "stat", value: "National", label: "Hackathon Participant" }
+];
+
+const defaultAchievements = [
+  { _id: "def-ach-1", type: "achievement", title: "NPTEL Top 5%", description: "Top 5% in DSA using Java.", icon: "FiAward" },
+  { _id: "def-ach-2", type: "achievement", title: "HackerRank Badges", description: "C++ Gold, C Silver, Java Bronze, Problem Solving Bronze.", icon: "FiStar" },
+  { _id: "def-ach-3", type: "achievement", title: "Hackamind 2026", description: "National Hackathon at Nirma University.", icon: "FiUsers" },
+  { _id: "def-ach-4", type: "achievement", title: "CodeChef Rating", description: "Current 996, peak 1020 rating.", icon: "FiTrendingUp" }
+];
+
+const defaultAchievementsList = [...defaultStats, ...defaultAchievements];
+
 export default function Achievements({ isAdmin }) {
-  const [achList, setAchList] = useState([]);
+  const [achList, setAchList] = useState(defaultAchievementsList);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
@@ -138,7 +151,9 @@ export default function Achievements({ isAdmin }) {
         if (res.ok) return res.json();
       })
       .then(data => {
-        if (data) setAchList(data);
+        if (data && Array.isArray(data) && data.length > 0) {
+          setAchList(data);
+        }
       })
       .catch(err => console.error("Error loading achievements:", err));
   };
@@ -197,8 +212,11 @@ export default function Achievements({ isAdmin }) {
     }
   };
 
-  const stats = achList.filter(a => a.type === "stat");
-  const achievements = achList.filter(a => a.type === "achievement");
+  const rawStats = achList.filter(a => a.type === "stat" || (a.value && a.label && !a.title));
+  const rawAchievements = achList.filter(a => a.type === "achievement" || (a.title && a.description));
+
+  const stats = rawStats.length > 0 ? rawStats : defaultStats;
+  const achievements = rawAchievements.length > 0 ? rawAchievements : defaultAchievements;
 
   return (
     <section id="achievements" className="section-padding bg-white dark:bg-black relative">
@@ -225,50 +243,44 @@ export default function Achievements({ isAdmin }) {
           )}
         </div>
 
-        {stats.length > 0 && (
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            variants={container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {stats.map((stat) => (
-              <StatCard 
-                key={stat._id} 
-                value={stat.value} 
-                label={stat.label} 
-                isAdmin={isAdmin}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                ach={stat}
-              />
-            ))}
-          </motion.div>
-        )}
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {stats.map((stat) => (
+            <StatCard 
+              key={stat._id || stat.label} 
+              value={stat.value} 
+              label={stat.label} 
+              isAdmin={isAdmin}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              ach={stat}
+            />
+          ))}
+        </motion.div>
 
-        {achievements.length > 0 && (
-          <motion.div
-            className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6"
-            variants={container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {achievements.map((ach) => (
-              <AchievementCard 
-                key={ach._id} 
-                title={ach.title} 
-                description={ach.description} 
-                icon={ach.icon} 
-                isAdmin={isAdmin}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                ach={ach}
-              />
-            ))}
-          </motion.div>
-        )}
+        <motion.div
+          className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {achievements.map((ach) => (
+            <AchievementCard 
+              key={ach._id || ach.title} 
+              title={ach.title} 
+              description={ach.description} 
+              icon={ach.icon} 
+              isAdmin={isAdmin}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              ach={ach}
+            />
+          ))}
+        </motion.div>
       </div>
 
       {/* Editor Modal */}

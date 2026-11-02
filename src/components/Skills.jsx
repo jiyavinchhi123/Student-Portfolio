@@ -105,10 +105,14 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 };
 
+const getSkillName = (s) => (typeof s === "string" ? s : s?.name || "");
+const getSkillCategory = (s) => (typeof s === "object" ? s?.category : null);
+
 export default function Skills({ skillList: initialSkills = [], isAdmin }) {
   const [skills, setSkills] = useState(initialSkills);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSkillName, setNewSkillName] = useState("");
+  const [newSkillCategory, setNewSkillCategory] = useState("Frontend");
 
   const fetchSkills = () => {
     fetch(`${SERVER_URL}/portfolio/skills`)
@@ -131,11 +135,15 @@ export default function Skills({ skillList: initialSkills = [], isAdmin }) {
       const res = await fetch(`${SERVER_URL}/portfolio/skills`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newSkillName.trim() })
+        body: JSON.stringify({
+          name: newSkillName.trim(),
+          category: newSkillCategory
+        })
       });
       if (res.ok) {
         setIsModalOpen(false);
         setNewSkillName("");
+        setNewSkillCategory("Frontend");
         fetchSkills();
       } else {
         const err = await res.json();
@@ -164,32 +172,68 @@ export default function Skills({ skillList: initialSkills = [], isAdmin }) {
 
   const filteredCategories = useMemo(() => {
     if (!skills || skills.length === 0) return categories;
-    return categories.map(cat => ({
-      ...cat,
-      items: cat.items.filter(item =>
-        skills.some(s => s.toLowerCase() === item.label.toLowerCase())
-      )
-    })).filter(cat => cat.items.length > 0);
+    return categories.map((cat) => {
+      const matchedPredefined = cat.items.filter((item) =>
+        skills.some((s) => getSkillName(s).toLowerCase() === item.label.toLowerCase())
+      );
+
+      const customItems = skills
+        .filter((s) => {
+          const name = getSkillName(s);
+          const catName = getSkillCategory(s);
+          if (!catName) return false;
+          if (catName.toLowerCase() !== cat.title.toLowerCase()) return false;
+          return !cat.items.some((item) => item.label.toLowerCase() === name.toLowerCase());
+        })
+        .map((s) => ({
+          label: getSkillName(s),
+          icon: null,
+          color: "#3b82f6"
+        }));
+
+      return {
+        ...cat,
+        items: [...matchedPredefined, ...customItems]
+      };
+    }).filter((cat) => cat.items.length > 0);
   }, [skills]);
 
   const filteredCore = useMemo(() => {
     if (!skills || skills.length === 0) return coreSubjects;
-    return coreSubjects.filter(item =>
-      skills.some(s => s.toLowerCase() === item.label.toLowerCase())
+    const matched = coreSubjects.filter((item) =>
+      skills.some((s) => getSkillName(s).toLowerCase() === item.label.toLowerCase())
     );
+    const custom = skills
+      .filter((s) => {
+        const cat = getSkillCategory(s);
+        if (!cat) return false;
+        if (!["core subjects", "core", "core subject"].includes(cat.toLowerCase())) return false;
+        return !coreSubjects.some((item) => item.label.toLowerCase() === getSkillName(s).toLowerCase());
+      })
+      .map((s) => ({ label: getSkillName(s), icon: FaBrain }));
+    return [...matched, ...custom];
   }, [skills]);
 
   const filteredSoft = useMemo(() => {
     if (!skills || skills.length === 0) return softSkills;
-    return softSkills.filter(item =>
-      skills.some(s => s.toLowerCase() === item.label.toLowerCase())
+    const matched = softSkills.filter((item) =>
+      skills.some((s) => getSkillName(s).toLowerCase() === item.label.toLowerCase())
     );
+    const custom = skills
+      .filter((s) => {
+        const cat = getSkillCategory(s);
+        if (!cat) return false;
+        if (!["soft skills", "soft skill", "soft"].includes(cat.toLowerCase())) return false;
+        return !softSkills.some((item) => item.label.toLowerCase() === getSkillName(s).toLowerCase());
+      })
+      .map((s) => ({ label: getSkillName(s), icon: FiTarget }));
+    return [...matched, ...custom];
   }, [skills]);
 
   return (
     <section id="skills" className="section-padding bg-white dark:bg-black relative">
       <ul className="sr-only hidden" aria-hidden="true">
-        {skills.map((s) => <li key={s}>{s}</li>)}
+        {skills.map((s, idx) => <li key={getSkillName(s) || idx}>{getSkillName(s)}</li>)}
       </ul>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         
@@ -359,19 +403,39 @@ export default function Skills({ skillList: initialSkills = [], isAdmin }) {
         title="Add Skill"
         onSave={handleAddSkill}
       >
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Skill Name</label>
-          <input
-            type="text"
-            value={newSkillName}
-            onChange={(e) => setNewSkillName(e.target.value)}
-            className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none"
-            placeholder="e.g. React, Docker, Python"
-            required
-          />
-          <p className="text-[10px] text-slate-400 mt-1">
-            Skill will be auto-categorized under your category tabs based on name matching.
-          </p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Skill Name
+            </label>
+            <input
+              type="text"
+              value={newSkillName}
+              onChange={(e) => setNewSkillName(e.target.value)}
+              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              placeholder="e.g. React, Next.js, Docker, Communication"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Skill Type / Category
+            </label>
+            <select
+              value={newSkillCategory}
+              onChange={(e) => setNewSkillCategory(e.target.value)}
+              className="w-full rounded-xl bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="Frontend">Frontend</option>
+              <option value="Backend">Backend</option>
+              <option value="Languages">Languages</option>
+              <option value="Database">Database</option>
+              <option value="Tools">Tools</option>
+              <option value="Core Subjects">Core Subjects</option>
+              <option value="Soft Skills">Soft Skills</option>
+            </select>
+          </div>
         </div>
       </EditModal>
     </section>

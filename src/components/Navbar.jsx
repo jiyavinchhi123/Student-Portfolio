@@ -9,6 +9,7 @@ const links = [
   { path: "/skills", label: "Skills" },
   { path: "/projects", label: "Projects" },
   { path: "/achievements", label: "Achievements" },
+  { path: "/tasks", label: "Task Space" },
   { path: "/contact", label: "Contact" }
 ];
 
@@ -22,7 +23,6 @@ export default function Navbar({ onToggleTheme, theme, isAdmin }) {
 
   const navLinks = [...links];
   if (isAdmin) {
-    navLinks.push({ path: "/tasks", label: "Task Space" });
     navLinks.push({ path: "#", label: "Logout", isAction: true });
   }
 

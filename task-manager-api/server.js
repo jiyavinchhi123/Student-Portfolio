@@ -21,8 +21,9 @@ const PORT = process.env.PORT || 5000;
 // Enable Cross-Origin Resource Sharing (CORS) for frontend integration
 app.use(cors());
 
-// Parse incoming request JSON payloads
-app.use(express.json());
+// Parse incoming request JSON payloads (allow up to 50mb for photo & PDF file uploads)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Secure Coding: Input sanitization using express-mongo-sanitize (Prevents NoSQL Injection)
 let mongoSanitize;
@@ -65,8 +66,8 @@ app.use(mongoSanitize({
 async function seedPortfolioData() {
   try {
     // Seed Profile
-    const profileCount = await Profile.countDocuments();
-    if (profileCount === 0) {
+    let profile = await Profile.findOne();
+    if (!profile) {
       await Profile.create({
         name: 'JIYA',
         titles: ["Aspiring Software Developer", "Full Stack Developer", "Problem Solver"],
@@ -75,6 +76,9 @@ async function seedPortfolioData() {
         email: 'jiya.vinchhi2412@gmail.com'
       });
       console.log('Seeded Profile data');
+    } else if (profile.name !== 'JIYA') {
+      profile.name = 'JIYA';
+      await profile.save();
     }
 
     // Seed About
@@ -119,84 +123,83 @@ async function seedPortfolioData() {
     }
 
     // Seed Projects
-    const projectCount = await Project.countDocuments();
-    if (projectCount === 0) {
-      const projects = [
-        {
-          name: "SiyaRang",
-          description: "Customized e-commerce platform for a Bandhani store.",
-          tech: ["HTML", "CSS", "JS", "Python"],
-          features: ["Product catalog", "Custom UI", "Secure storage"],
-          demo: "https://www.youtube.com/watch?v=FVvFQQ20D3M",
-          repo: "https://github.com/jiyavinchhi123/SiyaRang-Bandhej",
-          image: "siyarangImg"
-        },
-        {
-          name: "ResumeFit",
-          description: "Resume-to-job fit scoring with actionable improvements.",
-          tech: ["Java", "Python", "Supabase"],
-          features: ["Score out of 100", "Suggestions", "Trial model"],
-          demo: "https://www.youtube.com/watch?v=wBWmEWm8Bvg",
-          repo: "https://github.com/jiyavinchhi123/Job-Fit-Score",
-          image: "resumefitImg"
-        },
-        {
-          name: "FinLite",
-          description: "Smart finance manager built for modern business owners with automated insights and beautiful reporting.",
-          tech: ["React", "Spring Boot", "Supabase", "Python", "Charts"],
-          features: [
-            "Auto PDF balance sheet generation",
-            "Smart predictions with interactive charts",
-            "Guided, user-friendly workflows"
-          ],
-          demo: "https://www.youtube.com/watch?v=TQz-BSR0Dv4&t=15s",
-          repo: "https://github.com/jiyavinchhi123/FinLite",
-          image: "finliteImg"
-        },
-        {
-          name: "FormFlux",
-          description: "Dynamic form generator with database integration.",
-          tech: ["MongoDB", "Java", "JS"],
-          features: ["Auto DB creation", "Response tracking", "XLSX export"],
-          demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
-          repo: "https://github.com/jiyavinchhi123/FormFlux",
-          image: "formfluxImg"
-        },
-        {
-          name: "Task Manager API",
-          description: "A RESTful backend server with complete CRUD endpoints using an Express middleware pipeline.",
-          tech: ["Node.js", "Express.js", "CORS", "JavaScript"],
-          features: [
-            "Strict Content-Type verification middleware",
-            "Custom global logging and error handling pipeline",
-            "Route-specific integer parameter validation",
-            "Comprehensive REST CRUD endpoints (GET/POST/PUT/DELETE)"
-          ],
-          demo: "/projects/task-manager",
-          repo: "https://github.com/jiyavinchhi123/task-manager-api",
-          image: "taskmanagerImg"
-        }
-      ];
-      await Project.insertMany(projects);
-      console.log('Seeded Projects data');
+    const projectDefaults = [
+      {
+        name: "SiyaRang",
+        description: "Customized e-commerce platform for a Bandhani store.",
+        tech: ["HTML", "CSS", "JS", "Python"],
+        features: ["Product catalog", "Custom UI", "Secure storage"],
+        demo: "https://www.youtube.com/watch?v=FVvFQQ20D3M",
+        repo: "https://github.com/jiyavinchhi123/SiyaRang-Bandhej",
+        image: "siyarangImg"
+      },
+      {
+        name: "ResumeFit",
+        description: "Resume-to-job fit scoring with actionable improvements.",
+        tech: ["Java", "Python", "Supabase"],
+        features: ["Score out of 100", "Suggestions", "Trial model"],
+        demo: "https://www.youtube.com/watch?v=wBWmEWm8Bvg",
+        repo: "https://github.com/jiyavinchhi123/Job-Fit-Score",
+        image: "resumefitImg"
+      },
+      {
+        name: "FinLite",
+        description: "Smart finance manager built for modern business owners with automated insights and beautiful reporting.",
+        tech: ["React", "Spring Boot", "Supabase", "Python", "Charts"],
+        features: [
+          "Auto PDF balance sheet generation",
+          "Smart predictions with interactive charts",
+          "Guided, user-friendly workflows"
+        ],
+        demo: "https://www.youtube.com/watch?v=TQz-BSR0Dv4&t=15s",
+        repo: "https://github.com/jiyavinchhi123/FinLite",
+        image: "finliteImg"
+      },
+      {
+        name: "FormFlux",
+        description: "Dynamic form generator with database integration.",
+        tech: ["MongoDB", "Java", "JS"],
+        features: ["Auto DB creation", "Response tracking", "XLSX export"],
+        demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
+        repo: "https://github.com/jiyavinchhi123/FormFlux",
+        image: "formfluxImg"
+      }
+    ];
+
+    // Remove any task manager project from portfolio projects
+    await Project.deleteMany({ name: { $regex: /task manager/i } });
+
+    for (const p of projectDefaults) {
+      const existing = await Project.findOne({ name: p.name });
+      if (!existing) {
+        await Project.create(p);
+      } else if (!existing.image || existing.image === "") {
+        existing.image = p.image;
+        await existing.save();
+      }
     }
+    console.log('Synchronized Projects data');
 
     // Seed Achievements
-    const achCount = await Achievement.countDocuments();
-    if (achCount === 0) {
-      const achievements = [
-        { type: "stat", value: "130+", label: "Problems Solved" },
-        { type: "stat", value: "Top 5%", label: "NPTEL" },
-        { type: "stat", value: "996", label: "CodeChef Rating" },
-        { type: "stat", value: "National", label: "Hackathon Participant" },
-        { type: "achievement", title: "NPTEL Top 5%", description: "Top 5% in DSA using Java.", icon: "FiAward" },
-        { type: "achievement", title: "HackerRank Badges", description: "C++ Gold, C Silver, Java Bronze, Problem Solving Bronze.", icon: "FiStar" },
-        { type: "achievement", title: "Hackamind 2026", description: "National Hackathon at Nirma University.", icon: "FiUsers" },
-        { type: "achievement", title: "CodeChef Rating", description: "Current 996, peak 1020 rating.", icon: "FiTrendingUp" }
-      ];
-      await Achievement.insertMany(achievements);
-      console.log('Seeded Achievements data');
+    const achievementDefaults = [
+      { type: "stat", value: "130+", label: "Problems Solved" },
+      { type: "stat", value: "Top 5%", label: "NPTEL" },
+      { type: "stat", value: "996", label: "CodeChef Rating" },
+      { type: "stat", value: "National", label: "Hackathon Participant" },
+      { type: "achievement", title: "NPTEL Top 5%", description: "Top 5% in DSA using Java.", icon: "FiAward" },
+      { type: "achievement", title: "HackerRank Badges", description: "C++ Gold, C Silver, Java Bronze, Problem Solving Bronze.", icon: "FiStar" },
+      { type: "achievement", title: "Hackamind 2026", description: "National Hackathon at Nirma University.", icon: "FiUsers" },
+      { type: "achievement", title: "CodeChef Rating", description: "Current 996, peak 1020 rating.", icon: "FiTrendingUp" }
+    ];
+
+    for (const ach of achievementDefaults) {
+      const query = ach.type === 'stat' ? { label: ach.label } : { title: ach.title };
+      const found = await Achievement.findOne(query);
+      if (!found) {
+        await Achievement.create(ach);
+      }
     }
+    console.log('Synchronized Achievements data');
 
     // Seed Contact
     const contactCount = await Contact.countDocuments();
@@ -208,6 +211,106 @@ async function seedPortfolioData() {
       });
       console.log('Seeded Contact data');
     }
+
+    // Synchronize Tasks strictly for the 4 core projects (SiyaRang, ResumeFit, FinLite, FormFlux)
+    const projectTaskDefaults = [
+      {
+        title: "SiyaRang: E-Commerce Product Catalog & Filter Architecture",
+        description: "Built responsive grid catalog with dynamic category filters for Bandhani sarees, dupattas, and dress materials with image optimization.",
+        completed: true,
+        priority: "high",
+        category: "Deadline",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "SiyaRang: Secure Cart & Order Processing Pipeline",
+        description: "Implemented local shopping cart state, order summary calculator, and secure customer details checkout validation.",
+        completed: true,
+        priority: "medium",
+        category: "Personal",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "ResumeFit: Semantic Resume-to-Job Fit Scoring Engine",
+        description: "Developed scoring algorithm evaluating keywords, qualifications, and experience against target job descriptions to produce score out of 100.",
+        completed: true,
+        priority: "high",
+        category: "Deadline",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "ResumeFit: Supabase Cloud Database & Auth Integration",
+        description: "Configured Supabase PostgreSQL storage and auth policies to store user resume versions and evaluation histories.",
+        completed: true,
+        priority: "medium",
+        category: "Learning",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "FinLite: Automated PDF Balance Sheet & Ledger Generator",
+        description: "Engineered automated balance sheet and profit/loss report export module in PDF format with Spring Boot and Python.",
+        completed: true,
+        priority: "high",
+        category: "Deadline",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "FinLite: Predictive Cash Flow Analytics & Interactive Charts",
+        description: "Integrated interactive visual charts for revenue forecasting, expense tracking, and burn-rate calculations.",
+        completed: true,
+        priority: "medium",
+        category: "Personal",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "FormFlux: Dynamic Schema Engine & Automatic DB Generation",
+        description: "Built dynamic schema generator that auto-creates MongoDB collections on form creation with validation rules.",
+        completed: true,
+        priority: "high",
+        category: "Deadline",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "FormFlux: Live Response Tracker & Excel (XLSX) Exporter",
+        description: "Developed submission tracking table with instant Excel (.xlsx) data export for real-time survey results.",
+        completed: true,
+        priority: "medium",
+        category: "Learning",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "SiyaRang: Payment Gateway Integration & Webhook Listener",
+        description: "Integrate Razorpay payment gateway webhooks for instant transaction confirmation and automated receipt generation.",
+        completed: false,
+        priority: "high",
+        category: "Deadline",
+        assignedUser: "Jiya Vinchhi"
+      },
+      {
+        title: "FormFlux: Custom CSS Theme Builder for Form Creators",
+        description: "Add drag-and-drop theme customizer for form creators to style typography, border radiuses, and brand color palettes.",
+        completed: false,
+        priority: "medium",
+        category: "Personal",
+        assignedUser: "Jiya Vinchhi"
+      }
+    ];
+
+    // Remove any unrelated legacy or benchmark tasks
+    await Task.deleteMany({
+      title: { $not: { $regex: /siyarang|resumefit|finlite|formflux/i } }
+    });
+
+    for (const t of projectTaskDefaults) {
+      const found = await Task.findOne({ title: t.title });
+      if (!found) {
+        await Task.create(t);
+      }
+    }
+    if (cache && typeof cache.del === 'function') {
+      cache.del('all_tasks');
+    }
+    console.log('Synchronized 4-Projects Tasks data in MongoDB');
   } catch (err) {
     console.error('Error seeding portfolio data:', err);
   }
@@ -784,7 +887,20 @@ app.put('/portfolio/about', async (req, res, next) => {
 // EDUCATION
 app.get('/portfolio/education', async (req, res, next) => {
   try {
-    const list = await Education.find().sort({ graduationYear: -1 });
+    let list = await Education.find().sort({ graduationYear: -1 });
+    if (list.length === 0) {
+      const defaultEdu = await Education.create({
+        degree: "BTech in Information Technology",
+        college: "Charotar University of Science and Technology (CHARUSAT)",
+        institution: "Charotar University of Science and Technology (CHARUSAT)",
+        branch: "Information Technology",
+        startYear: "2023",
+        graduationYear: "2027",
+        year: "2023 - 2027",
+        description: "Building a strong foundation in software development, Data Structures, Algorithms, and modern web technologies."
+      });
+      list = [defaultEdu];
+    }
     res.status(200).json(list);
   } catch (err) {
     next(err);
@@ -894,7 +1010,7 @@ const validateAchievementId = (req, res, next) => {
 app.get('/portfolio/skills', async (req, res, next) => {
   try {
     const list = await Skill.find();
-    res.status(200).json(list.map(s => s.name));
+    res.status(200).json(list.map(s => ({ name: s.name, category: s.category || 'Frontend' })));
   } catch (err) {
     next(err);
   }
@@ -902,15 +1018,21 @@ app.get('/portfolio/skills', async (req, res, next) => {
 
 app.post('/portfolio/skills', async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, category } = req.body;
     if (!name) {
       return res.status(400).json({ error: "Bad Request", message: "Skill name is required." });
     }
-    const exists = await Skill.findOne({ name });
-    if (exists) {
+    const cleanName = name.trim();
+    let existing = await Skill.findOne({ name: { $regex: new RegExp(`^${cleanName}$`, 'i') } });
+    if (existing) {
+      if (category) {
+        existing.category = category;
+        await existing.save();
+        return res.status(200).json(existing);
+      }
       return res.status(400).json({ error: "Bad Request", message: "Skill already exists." });
     }
-    const newSkill = await Skill.create({ name });
+    const newSkill = await Skill.create({ name: cleanName, category: category || 'Frontend' });
     res.status(201).json(newSkill);
   } catch (err) {
     next(err);
@@ -933,7 +1055,65 @@ app.delete('/portfolio/skills/:name', async (req, res, next) => {
 // PROJECTS
 app.get('/portfolio/projects', async (req, res, next) => {
   try {
-    const list = await Project.find();
+    const defaults = [
+      {
+        name: "SiyaRang",
+        description: "Customized e-commerce platform for a Bandhani store.",
+        tech: ["HTML", "CSS", "JS", "Python"],
+        features: ["Product catalog", "Custom UI", "Secure storage"],
+        demo: "https://www.youtube.com/watch?v=FVvFQQ20D3M",
+        repo: "https://github.com/jiyavinchhi123/SiyaRang-Bandhej",
+        image: "siyarangImg"
+      },
+      {
+        name: "ResumeFit",
+        description: "Resume-to-job fit scoring with actionable improvements.",
+        tech: ["Java", "Python", "Supabase"],
+        features: ["Score out of 100", "Suggestions", "Trial model"],
+        demo: "https://www.youtube.com/watch?v=wBWmEWm8Bvg",
+        repo: "https://github.com/jiyavinchhi123/Job-Fit-Score",
+        image: "resumefitImg"
+      },
+      {
+        name: "FinLite",
+        description: "Smart finance manager built for modern business owners with automated insights and beautiful reporting.",
+        tech: ["React", "Spring Boot", "Supabase", "Python", "Charts"],
+        features: [
+          "Auto PDF balance sheet generation",
+          "Smart predictions with interactive charts",
+          "Guided, user-friendly workflows"
+        ],
+        demo: "https://www.youtube.com/watch?v=TQz-BSR0Dv4&t=15s",
+        repo: "https://github.com/jiyavinchhi123/FinLite",
+        image: "finliteImg"
+      },
+      {
+        name: "FormFlux",
+        description: "Dynamic form generator with database integration.",
+        tech: ["MongoDB", "Java", "JS"],
+        features: ["Auto DB creation", "Response tracking", "XLSX export"],
+        demo: "https://www.youtube.com/watch?v=MhxHFskRKCw&t=8s",
+        repo: "https://github.com/jiyavinchhi123/FormFlux",
+        image: "formfluxImg"
+      }
+    ];
+
+    // Exclude task manager from portfolio projects collection
+    await Project.deleteMany({ name: { $regex: /task manager/i } });
+
+    let list = await Project.find({ name: { $not: /task manager/i } });
+    if (list.length < 4) {
+      for (const def of defaults) {
+        const found = await Project.findOne({ name: def.name });
+        if (!found) {
+          await Project.create(def);
+        } else if (!found.image || found.image === '') {
+          found.image = def.image;
+          await found.save();
+        }
+      }
+      list = await Project.find({ name: { $not: /task manager/i } });
+    }
     res.status(200).json(list);
   } catch (err) {
     next(err);
@@ -988,10 +1168,33 @@ app.delete('/portfolio/projects/:id', validateProjectId, async (req, res, next) 
   }
 });
 
-// ACHIEVEMENTS
 app.get('/portfolio/achievements', async (req, res, next) => {
   try {
-    const list = await Achievement.find();
+    const defaults = [
+      { type: "stat", value: "130+", label: "Problems Solved" },
+      { type: "stat", value: "Top 5%", label: "NPTEL" },
+      { type: "stat", value: "996", label: "CodeChef Rating" },
+      { type: "stat", value: "National", label: "Hackathon Participant" },
+      { type: "achievement", title: "NPTEL Top 5%", description: "Top 5% in DSA using Java.", icon: "FiAward" },
+      { type: "achievement", title: "HackerRank Badges", description: "C++ Gold, C Silver, Java Bronze, Problem Solving Bronze.", icon: "FiStar" },
+      { type: "achievement", title: "Hackamind 2026", description: "National Hackathon at Nirma University.", icon: "FiUsers" },
+      { type: "achievement", title: "CodeChef Rating", description: "Current 996, peak 1020 rating.", icon: "FiTrendingUp" }
+    ];
+
+    let list = await Achievement.find();
+    const hasStats = list.some(a => a.type === 'stat');
+    const hasAchs = list.some(a => a.type === 'achievement');
+
+    if (list.length < 8 || !hasStats || !hasAchs) {
+      for (const def of defaults) {
+        const query = def.type === 'stat' ? { label: def.label } : { title: def.title };
+        const found = await Achievement.findOne(query);
+        if (!found) {
+          await Achievement.create(def);
+        }
+      }
+      list = await Achievement.find();
+    }
     res.status(200).json(list);
   } catch (err) {
     next(err);

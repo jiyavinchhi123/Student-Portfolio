@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { FiGithub, FiLinkedin, FiMail, FiEdit2 } from "react-icons/fi";
+import { FiGithub, FiLinkedin, FiMail, FiEdit2, FiUpload, FiFileText } from "react-icons/fi";
 import useTyping from "./useTyping";
 import ConstellationBackground from "./ConstellationBackground";
 import whiteImg from "../assets/White.png";
@@ -26,6 +26,26 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ ...profileData, titlesText: "" });
 
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData(prev => ({ ...prev, profilePhotoUrl: event.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResumeUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData(prev => ({ ...prev, resumeUrl: event.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const fetchProfile = () => {
     fetch(`${SERVER_URL}/portfolio/profile`)
       .then(res => {
@@ -33,8 +53,12 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
       })
       .then(data => {
         if (data) {
-          setProfileData(data);
-          setFormData({ ...data, titlesText: data.titles?.join(", ") || "" });
+          const sanitized = {
+            ...data,
+            name: data.name && data.name.toLowerCase().includes("vinchhi") ? "JIYA" : (data.name?.trim().split(" ")[0].toUpperCase() || "JIYA")
+          };
+          setProfileData(sanitized);
+          setFormData({ ...sanitized, titlesText: data.titles?.join(", ") || "" });
         }
       })
       .catch(err => console.error("Error loading header profile data:", err));
@@ -161,10 +185,15 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
               style={{ transition: "transform 0.2s ease-out" }}
             >
               <img
-                src={theme === "dark" ? blackImg : whiteImg}
+                src={profileData.profilePhotoUrl || (theme === "dark" ? blackImg : whiteImg)}
                 alt={`${profileData.name} illustration`}
-                className={`relative h-[clamp(230px,70vw,520px)] max-w-full w-auto transition-all duration-700 ${isDark ? "mix-blend-screen drop-shadow-[0_0_35px_rgba(59,130,246,0.15)]" : "mix-blend-multiply"
-                  }`}
+                className={`relative h-[clamp(230px,70vw,520px)] max-w-full w-auto transition-all duration-700 ${
+                  profileData.profilePhotoUrl
+                    ? "object-cover rounded-3xl shadow-2xl border border-slate-200/50 dark:border-white/10"
+                    : isDark
+                    ? "mix-blend-screen drop-shadow-[0_0_35px_rgba(59,130,246,0.15)]"
+                    : "mix-blend-multiply"
+                }`}
               />
             </motion.div>
           </motion.div>
@@ -184,7 +213,7 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
               }}
               variants={itemVariants}
             >
-              {profileData.name}'S
+              JIYA'S
             </motion.h1>
 
             {/* Solid title "PORTFOLIO" */}
@@ -231,6 +260,15 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
                 >
                   Download Resume
                 </a>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                <Link
+                  to="/contact"
+                  className="inline-flex w-full items-center justify-center px-6 py-3 rounded-full text-sm font-semibold border border-blue-500/40 text-blue-500 hover:bg-blue-500 hover:text-white transition shadow-[0_0_18px_rgba(59,130,246,0.08)] hover:shadow-[0_0_24px_rgba(59,130,246,0.3)]"
+                >
+                  Contact Me
+                </Link>
               </motion.div>
             </motion.div>
 
@@ -308,13 +346,39 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Profile Photo URL</label>
-            <input
-              type="text"
-              value={formData.profilePhotoUrl}
-              onChange={(e) => setFormData({ ...formData, profilePhotoUrl: e.target.value })}
-              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Profile Photo (Upload JPG / Image File)
+            </label>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <img
+                src={formData.profilePhotoUrl || (theme === "dark" ? blackImg : whiteImg)}
+                alt="Preview"
+                className="w-12 h-12 rounded-lg object-cover border border-slate-300 dark:border-white/20 shrink-0"
+              />
+              <div className="flex flex-col gap-1 flex-grow">
+                <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white cursor-pointer transition shadow-sm w-fit">
+                  <FiUpload /> Upload Photo
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {formData.profilePhotoUrl ? "✓ Custom image uploaded" : "Choose a JPG or PNG image"}
+                </span>
+              </div>
+              {formData.profilePhotoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, profilePhotoUrl: "" })}
+                  className="text-xs text-red-500 hover:underline shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Short Introduction</label>
@@ -326,13 +390,37 @@ export default function Header({ name: defaultName, themeColor, theme, isAdmin }
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Resume File / Link</label>
-            <input
-              type="text"
-              value={formData.resumeUrl}
-              onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
-              className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Resume (Upload PDF File)
+            </label>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <div className="p-2.5 rounded-lg bg-red-500/10 text-red-500 text-lg shrink-0">
+                <FiFileText />
+              </div>
+              <div className="flex flex-col gap-1 flex-grow">
+                <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white cursor-pointer transition shadow-sm w-fit">
+                  <FiUpload /> Upload PDF Resume
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={handleResumeUpload}
+                  />
+                </label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {formData.resumeUrl ? "✓ PDF Resume ready" : "Upload your Jiya_Vinchhi_Resume.pdf"}
+                </span>
+              </div>
+              {formData.resumeUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, resumeUrl: "" })}
+                  className="text-xs text-red-500 hover:underline shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>

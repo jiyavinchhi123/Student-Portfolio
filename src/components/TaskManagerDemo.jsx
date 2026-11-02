@@ -18,12 +18,151 @@ import {
   FiUser,
   FiZap,
   FiShield,
-  FiCpu
+  FiCpu,
+  FiLayout,
+  FiSliders,
+  FiX,
+  FiEye,
+  FiCheckCircle,
+  FiEdit2,
+  FiLock
 } from "react-icons/fi";
+
+// Relative luminance helper for WCAG contrast evaluation
+function getLuminance(hex) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return 0.5;
+  const c = hex.substring(1);
+  const rgb = parseInt(c.length === 3 ? c.split('').map(x => x + x).join('') : c, 16);
+  if (isNaN(rgb)) return 0.5;
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >>  8) & 0xff;
+  const b = (rgb >>  0) & 0xff;
+  const a = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+}
+
+function getContrastRatio(hex1, hex2) {
+  const lum1 = getLuminance(hex1);
+  const lum2 = getLuminance(hex2);
+  const brightest = Math.max(lum1, lum2);
+  const darkest = Math.min(lum1, lum2);
+  return Number(((brightest + 0.05) / (darkest + 0.05)).toFixed(2));
+}
 
 const DEFAULT_SERVER_URL = "http://localhost:5000";
 
-export default function TaskManagerDemo() {
+const default4ProjectTasks = [
+  {
+    id: "proj-1",
+    title: "SiyaRang: E-Commerce Product Catalog & Filter Architecture",
+    description: "Built responsive grid catalog with dynamic category filters for Bandhani sarees, dupattas, and dress materials with image optimization.",
+    completed: true,
+    priority: "high",
+    category: "SiyaRang",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-2",
+    title: "SiyaRang: Secure Cart & Order Processing Pipeline",
+    description: "Implemented local shopping cart state, order summary calculator, and secure customer details checkout validation.",
+    completed: true,
+    priority: "medium",
+    category: "SiyaRang",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-3",
+    title: "ResumeFit: Semantic Resume-to-Job Fit Scoring Engine",
+    description: "Developed scoring algorithm evaluating keywords, qualifications, and experience against target job descriptions to produce score out of 100.",
+    completed: true,
+    priority: "high",
+    category: "ResumeFit",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-4",
+    title: "ResumeFit: Supabase Cloud Database & Auth Integration",
+    description: "Configured Supabase PostgreSQL storage and auth policies to store user resume versions and evaluation histories.",
+    completed: true,
+    priority: "medium",
+    category: "ResumeFit",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-5",
+    title: "FinLite: Automated PDF Balance Sheet & Ledger Generator",
+    description: "Engineered automated balance sheet and profit/loss report export module in PDF format with Spring Boot and Python.",
+    completed: true,
+    priority: "high",
+    category: "FinLite",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-6",
+    title: "FinLite: Predictive Cash Flow Analytics & Interactive Charts",
+    description: "Integrated interactive visual charts for revenue forecasting, expense tracking, and burn-rate calculations.",
+    completed: true,
+    priority: "medium",
+    category: "FinLite",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-7",
+    title: "FormFlux: Dynamic Schema Engine & Automatic DB Generation",
+    description: "Built dynamic schema generator that auto-creates MongoDB collections on form creation with validation rules.",
+    completed: true,
+    priority: "high",
+    category: "FormFlux",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-8",
+    title: "FormFlux: Live Response Tracker & Excel (XLSX) Exporter",
+    description: "Developed submission tracking table with instant Excel (.xlsx) data export for real-time survey results.",
+    completed: true,
+    priority: "medium",
+    category: "FormFlux",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-9",
+    title: "SiyaRang: Payment Gateway Integration & Webhook Listener",
+    description: "Integrate Razorpay payment gateway webhooks for instant transaction confirmation and automated receipt generation.",
+    completed: false,
+    priority: "high",
+    category: "SiyaRang",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "proj-10",
+    title: "FormFlux: Custom CSS Theme Builder for Form Creators",
+    description: "Add drag-and-drop theme customizer for form creators to style typography, border radiuses, and brand color palettes.",
+    completed: false,
+    priority: "medium",
+    category: "FormFlux",
+    assignedUser: "Jiya Vinchhi",
+    createdAt: new Date().toISOString()
+  }
+];
+
+const defaultCompletedShowcaseTasks = default4ProjectTasks.filter(t => t.completed);
+
+export default function TaskManagerDemo({ isAdmin: propIsAdmin }) {
+  const isAdmin = propIsAdmin !== undefined 
+    ? propIsAdmin 
+    : localStorage.getItem("admin_token") === "admin-session-token-998";
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [backendOnline, setBackendOnline] = useState(false);
@@ -39,6 +178,19 @@ export default function TaskManagerDemo() {
     localStorage.setItem("blue_green_port", targetUrl);
     await checkBackend(true, targetUrl);
   };
+
+  // AI-Assisted UI Design Suggestion State (Practical 15 / Assignment 7)
+  const [aiDesignModalOpen, setAiDesignModalOpen] = useState(false);
+  const [loadingDesign, setLoadingDesign] = useState(false);
+  const [designSuggestion, setDesignSuggestion] = useState(null);
+  const [isThemeApplied, setIsThemeApplied] = useState(() => !!localStorage.getItem("applied_ai_theme"));
+  const [appliedTheme, setAppliedTheme] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("applied_ai_theme"));
+    } catch (_) {
+      return null;
+    }
+  });
   
   // Form State
   const [title, setTitle] = useState("");
@@ -58,6 +210,16 @@ export default function TaskManagerDemo() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+
+  // Admin Task Editing Modal State
+  const [editingTask, setEditingTask] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    priority: "medium",
+    completed: false,
+    assignedUser: "Jiya Vinchhi"
+  });
 
   // Notifications
   const [notification, setNotification] = useState(null);
@@ -89,7 +251,8 @@ export default function TaskManagerDemo() {
         setBackendOnline(true);
         setUseFallback(false);
         const data = await response.json();
-        setTasks(data);
+        const projectTasks = (data || []).filter(t => /siyarang|resumefit|finlite|formflux/i.test(t.title));
+        setTasks(projectTasks.length > 0 ? projectTasks : default4ProjectTasks);
         fetchEventLogs(targetUrl);
         
         // Introspect active container version
@@ -114,16 +277,14 @@ export default function TaskManagerDemo() {
       
       // Load fallback tasks from LocalStorage
       const stored = localStorage.getItem("portfolio_tasks");
-      if (stored) {
-        setTasks(JSON.parse(stored));
+      let parsed = [];
+      try { parsed = stored ? JSON.parse(stored) : []; } catch (_) {}
+      const validProjectTasks = parsed.filter(t => /siyarang|resumefit|finlite|formflux/i.test(t.title));
+      if (validProjectTasks.length > 0) {
+        setTasks(validProjectTasks);
       } else {
-        const defaultTasks = [
-          { id: 1, title: "Understand Express Middleware (Fallback Mode)", description: "Express server is offline, simulating on client.", completed: true, priority: "high" },
-          { id: 2, title: "Start Node Express Server", description: "Run 'npm start' in task-manager-api subfolder.", completed: false, priority: "high" },
-          { id: 3, title: "Integrate with Student Portfolio", description: "This interactive page is working now!", completed: false, priority: "medium" }
-        ];
-        setTasks(defaultTasks);
-        localStorage.setItem("portfolio_tasks", JSON.stringify(defaultTasks));
+        setTasks(default4ProjectTasks);
+        localStorage.setItem("portfolio_tasks", JSON.stringify(default4ProjectTasks));
       }
       if (showPingNotification) {
         showToast("Backend offline. Fallback client-side active.", "warning");
@@ -133,8 +294,94 @@ export default function TaskManagerDemo() {
     }
   };
 
+  const applyAiDesign = (suggestion, showNotification = true) => {
+    if (!suggestion?.colors) return;
+    const root = document.documentElement;
+    root.style.setProperty('--ai-primary', suggestion.colors.primary);
+    root.style.setProperty('--ai-secondary', suggestion.colors.secondary);
+    if (suggestion.colors.background) root.style.setProperty('--ai-background', suggestion.colors.background);
+    if (suggestion.colors.card) root.style.setProperty('--ai-card', suggestion.colors.card);
+    if (suggestion.colors.accent) root.style.setProperty('--ai-accent', suggestion.colors.accent);
+    if (suggestion.fonts?.heading) root.style.setProperty('--ai-font-heading', suggestion.fonts.heading);
+    if (suggestion.fonts?.body) root.style.setProperty('--ai-font-body', suggestion.fonts.body);
+
+    root.classList.add('ai-theme-active');
+    setIsThemeApplied(true);
+    setAppliedTheme(suggestion);
+    localStorage.setItem('applied_ai_theme', JSON.stringify(suggestion));
+    if (showNotification) {
+      showToast("✨ AI Design tokens applied to :root CSS variables!", "success");
+    }
+  };
+
+  const resetAiDesign = () => {
+    const root = document.documentElement;
+    root.style.removeProperty('--ai-primary');
+    root.style.removeProperty('--ai-secondary');
+    root.style.removeProperty('--ai-background');
+    root.style.removeProperty('--ai-card');
+    root.style.removeProperty('--ai-accent');
+    root.style.removeProperty('--ai-font-heading');
+    root.style.removeProperty('--ai-font-body');
+    root.classList.remove('ai-theme-active');
+    setIsThemeApplied(false);
+    setAppliedTheme(null);
+    localStorage.removeItem('applied_ai_theme');
+    showToast("Restored default UI styling.", "info");
+  };
+
+  const fetchDesignSuggestion = async () => {
+    setLoadingDesign(true);
+    setAiDesignModalOpen(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/ai/design-suggestion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "modern task management productivity workspace" }),
+        signal: AbortSignal.timeout(6000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDesignSuggestion(data);
+        showToast("AI UI Design suggestions generated!", "success");
+      } else {
+        throw new Error("HTTP error " + res.status);
+      }
+    } catch (err) {
+      // Graceful fallback preset with high-contrast accessibility
+      const fallbackPreset = {
+        colors: {
+          primary: "#6366f1",
+          secondary: "#ec4899",
+          background: "#0f172a",
+          card: "#1e293b",
+          accent: "#06b6d4"
+        },
+        fonts: {
+          heading: "'Outfit', 'Space Grotesk', sans-serif",
+          body: "'Inter', 'Sora', sans-serif"
+        },
+        layoutTip: "Group tasks into collapsible status columns (Kanban style) and place high-priority filters in a sticky header to optimize visual scanability.",
+        source: "curated-preset",
+        fallback: true,
+        disclaimer: "Curated responsive design preset. Review WCAG contrast ratios before production deployment."
+      };
+      setDesignSuggestion(fallbackPreset);
+      showToast("Loaded design suggestions (Fallback Mode)", "warning");
+    } finally {
+      setLoadingDesign(false);
+    }
+  };
+
   useEffect(() => {
     checkBackend();
+    const savedTheme = localStorage.getItem("applied_ai_theme");
+    if (savedTheme) {
+      try {
+        const parsed = JSON.parse(savedTheme);
+        applyAiDesign(parsed, false);
+      } catch (_) {}
+    }
   }, []);
 
   // --- External AI Integration (Practical 13) ---
@@ -196,11 +443,67 @@ export default function TaskManagerDemo() {
     }
   };
 
+  const handleOpenEdit = (task) => {
+    if (!isAdmin) return;
+    setEditingTask(task);
+    setEditForm({
+      title: task.title || "",
+      description: task.description || "",
+      priority: task.priority || "medium",
+      completed: task.completed || false,
+      assignedUser: task.assignedUser || "Jiya Vinchhi"
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!isAdmin || !editingTask || !editForm.title.trim()) return;
+    const targetId = editingTask._id || editingTask.id;
+    const bodyData = {
+      title: editForm.title.trim(),
+      description: editForm.description.trim(),
+      priority: editForm.priority,
+      completed: editForm.completed,
+      assignedUser: editForm.assignedUser.trim() || "Jiya Vinchhi"
+    };
+
+    if (useFallback) {
+      const updated = tasks.map(t => (t._id === targetId || t.id === targetId) ? { ...t, ...bodyData } : t);
+      setTasks(updated);
+      localStorage.setItem("portfolio_tasks", JSON.stringify(updated));
+      showToast("Task updated successfully!");
+      setEditingTask(null);
+    } else {
+      try {
+        const response = await fetch(`${serverUrl}/tasks/${targetId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyData)
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setTasks(prev => prev.map(t => (t._id === targetId || t.id === targetId) ? data : t));
+          showToast("Task updated successfully!");
+          setEditingTask(null);
+          fetchEventLogs();
+        } else {
+          showToast(data.message || "Failed to update task.", "error");
+        }
+      } catch (err) {
+        showToast("Error updating task on server.", "error");
+      }
+    }
+  };
+
   // --- CRUD Operations ---
 
   // Create Task
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      showToast("Read-only mode: Only administrators can create new tasks.", "warning");
+      return;
+    }
     if (!title.trim()) return;
 
     setLoading(true);
@@ -279,6 +582,11 @@ export default function TaskManagerDemo() {
 
   // Toggle Complete Task (PUT)
   const handleToggleComplete = async (task) => {
+    if (!isAdmin) {
+      showToast("Read-only mode: Verified completed tasks cannot be modified.", "warning");
+      return;
+    }
+
     const updatedStatus = !task.completed;
     const targetId = task._id || task.id;
     const bodyData = { completed: updatedStatus };
@@ -310,6 +618,11 @@ export default function TaskManagerDemo() {
 
   // Delete Task
   const handleDeleteTask = async (id) => {
+    if (!isAdmin) {
+      showToast("Read-only mode: Only administrators can delete tasks.", "warning");
+      return;
+    }
+
     if (useFallback) {
       const target = tasks.find(t => t.id === id);
       const updatedTasks = tasks.filter(t => t.id !== id);
@@ -390,18 +703,30 @@ export default function TaskManagerDemo() {
     }
   };
 
+  // Filter tasks to ensure only tasks related to the 4 projects are shown
+  const projectTasks = tasks.filter(t => /siyarang|resumefit|finlite|formflux/i.test(t.title));
+  const effectiveBaseTasks = projectTasks.length > 0 ? projectTasks : default4ProjectTasks;
+
+  // Completed Tasks for Public View
+  const publicCompletedTasks = effectiveBaseTasks.filter(t => t.completed);
+  const effectivePublicTasks = publicCompletedTasks.length > 0 
+    ? publicCompletedTasks 
+    : defaultCompletedShowcaseTasks;
+
+  const currentWorkspaceTasks = isAdmin ? effectiveBaseTasks : effectivePublicTasks;
+
   // Stats Calculations
-  const totalCount = tasks.length;
-  const completedCount = tasks.filter(t => t.completed).length;
-  const pendingCount = totalCount - completedCount;
-  const highPriorityCount = tasks.filter(t => t.priority === "high" && !t.completed).length;
+  const totalCount = currentWorkspaceTasks.length;
+  const completedCount = currentWorkspaceTasks.filter(t => t.completed).length;
+  const pendingCount = isAdmin ? currentWorkspaceTasks.filter(t => !t.completed).length : 0;
+  const highPriorityCount = currentWorkspaceTasks.filter(t => t.priority === "high").length;
 
   // Filter Tasks
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = currentWorkspaceTasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = statusFilter === "all" || 
+    const matchesStatus = !isAdmin || statusFilter === "all" || 
                          (statusFilter === "completed" && task.completed) || 
                          (statusFilter === "pending" && !task.completed);
                          
@@ -438,7 +763,10 @@ export default function TaskManagerDemo() {
           <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
             <FiCode /> FULL STACK TASK SPACE
           </div>
-          <h1 className="text-3xl font-extrabold mt-1 text-slate-900 dark:text-white tracking-tight">
+          <h1 
+            style={isThemeApplied && appliedTheme?.fonts?.heading ? { fontFamily: appliedTheme.fonts.heading } : {}}
+            className="text-3xl font-extrabold mt-1 text-slate-900 dark:text-white tracking-tight"
+          >
             Creative Task Workspace
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
@@ -446,7 +774,31 @@ export default function TaskManagerDemo() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* AI-Assisted UI Design Suggestion Button */}
+          <button
+            onClick={fetchDesignSuggestion}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-95 transition shadow-lg shadow-purple-500/25"
+            title="Get AI UI Design recommendations"
+          >
+            <FiZap className={loadingDesign ? "animate-spin" : ""} />
+            <span>{loadingDesign ? "Generating..." : "✨ Get AI Design Suggestion"}</span>
+          </button>
+
+          {isThemeApplied && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span>AI Theme Active</span>
+              <button
+                onClick={resetAiDesign}
+                className="ml-1 text-[11px] underline hover:text-indigo-800 dark:hover:text-indigo-200"
+                title="Reset to default theme"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+
           <Link
             to="/projects"
             className="px-4 py-2 text-sm font-semibold rounded-full border border-slate-300 text-slate-700 dark:border-white/10 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition"
@@ -461,6 +813,44 @@ export default function TaskManagerDemo() {
           </button>
         </div>
       </div>
+
+      {/* Access Mode Banner (Public Read-Only vs Admin Mode) */}
+      {!isAdmin ? (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/5 border border-blue-500/25 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-600 text-white text-lg shrink-0 shadow-md">
+              <FiShield />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Public Showcase Mode — Verified Completed Deliverables</h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  Read Only
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                You are viewing completed engineering tasks and technical deliverables in read-only mode. Task creation, editing, and status management are restricted to the Admin Workspace.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/login"
+            className="shrink-0 px-4 py-2 text-xs font-bold rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-md transition hover:scale-105 flex items-center gap-1.5"
+          >
+            <FiLock className="text-xs" /> Admin Sign In
+          </Link>
+        </div>
+      ) : (
+        <div className="p-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 backdrop-blur-md flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
+            <FiCheckCircle className="text-base text-emerald-500 shrink-0" />
+            <span><strong>Admin Workspace Active:</strong> Full CRUD operations, task editing modal, and real-time EventEmitter status toggling enabled.</span>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+            Admin Mode
+          </span>
+        </div>
+      )}
 
       {/* Offline Alert Warning */}
       <AnimatePresence>
@@ -546,16 +936,24 @@ export default function TaskManagerDemo() {
       {/* Metrics Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-1 shadow-sm">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Total Tasks</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+            {isAdmin ? "Total Tasks" : "Deliverables"}
+          </span>
           <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{totalCount}</span>
         </div>
         <div className="p-5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-1 shadow-sm">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Completed</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+            {isAdmin ? "Completed" : "Verified Deliverables"}
+          </span>
           <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{completedCount}</span>
         </div>
         <div className="p-5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-1 shadow-sm">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Pending</span>
-          <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{pendingCount}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+            {isAdmin ? "Pending" : "Completion Rate"}
+          </span>
+          <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
+            {isAdmin ? pendingCount : "100%"}
+          </span>
         </div>
         <div className="p-5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-1 shadow-sm">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">High Priority</span>
@@ -566,109 +964,169 @@ export default function TaskManagerDemo() {
       {/* Main Workspace Dashboard */}
       <div className="grid lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN: Add Task Form (Grid: 4 cols) */}
+        {/* LEFT COLUMN: Controls / Overview (Grid: 4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          <div className="p-6 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-5">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <FiServer className="text-blue-500" /> New Task
-            </h3>
-
-            <form onSubmit={handleCreateTask} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Task Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Implement user login"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
+          {isAdmin ? (
+            <div className="p-6 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <FiServer className="text-blue-500" /> New Task
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  Admin
+                </span>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Description
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAiDescription}
-                    disabled={isGeneratingAi || !title.trim()}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-                    title={title.trim() ? "Generate description & suggest priority using AI" : "Enter a task title first"}
-                  >
-                    <FiCpu className={isGeneratingAi ? "animate-spin" : ""} />
-                    {isGeneratingAi ? "Generating..." : "✨ AI Assist"}
-                  </button>
+              <form onSubmit={handleCreateTask} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Task Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Implement user login"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    disabled={loading}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
                 </div>
-                <textarea
-                  placeholder="Describe details of the task or click '✨ AI Assist'..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={loading}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
-                />
-                
-                {/* Responsible AI Disclaimer & Metadata Banner */}
-                {aiSuggestionMeta && (
-                  <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex flex-col gap-1 transition-all">
-                    <div className="flex items-center justify-between font-semibold">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <FiCpu className="text-purple-500" />
-                        Source: {aiSuggestionMeta.source === "openai" ? "OpenAI GPT-4o-mini" : aiSuggestionMeta.source === "gemini" ? "Google Gemini 1.5" : "Graceful Fallback Engine"}
-                      </span>
-                      {aiSuggestionMeta.suggestedPriority && (
-                        <span className="uppercase text-[10px] tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 font-bold">
-                          Suggested: {aiSuggestionMeta.suggestedPriority}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-                      ⚠️ <strong>Responsible AI:</strong> Suggestion is an editable machine draft. Review before submitting. Never send credentials or personal data.
-                    </p>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Description
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiDescription}
+                      disabled={isGeneratingAi || !title.trim()}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                      title={title.trim() ? "Generate description & suggest priority using AI" : "Enter a task title first"}
+                    >
+                      <FiCpu className={isGeneratingAi ? "animate-spin" : ""} />
+                      {isGeneratingAi ? "Generating..." : "✨ AI Assist"}
+                    </button>
                   </div>
-                )}
-              </div>
+                  <textarea
+                    placeholder="Describe details of the task or click '✨ AI Assist'..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
+                  />
+                  
+                  {/* Responsible AI Disclaimer & Metadata Banner */}
+                  {aiSuggestionMeta && (
+                    <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex flex-col gap-1 transition-all">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <FiCpu className="text-purple-500" />
+                          Source: {aiSuggestionMeta.source === "openai" ? "OpenAI GPT-4o-mini" : aiSuggestionMeta.source === "gemini" ? "Google Gemini 1.5" : "Graceful Fallback Engine"}
+                        </span>
+                        {aiSuggestionMeta.suggestedPriority && (
+                          <span className="uppercase text-[10px] tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 font-bold">
+                            Suggested: {aiSuggestionMeta.suggestedPriority}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                        ⚠️ <strong>Responsible AI:</strong> Suggestion is an editable machine draft. Review before submitting. Never send credentials or personal data.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <FiUser className="text-blue-500" /> Assigned User (Event Payload)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Jiya Vinchhi"
-                  value={assignedUser}
-                  onChange={(e) => setAssignedUser(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <FiUser className="text-blue-500" /> Assigned User (Event Payload)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Jiya Vinchhi"
+                    value={assignedUser}
+                    onChange={(e) => setAssignedUser(e.target.value)}
+                    disabled={loading}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priority Label</label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priority Label</label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    disabled={loading}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
+                  >
+                    <option value="low" className="text-slate-800 bg-white">Low Priority</option>
+                    <option value="medium" className="text-slate-800 bg-white">Medium Priority</option>
+                    <option value="high" className="text-slate-800 bg-white">High Priority</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !title.trim()}
+                  style={isThemeApplied && appliedTheme?.colors?.primary ? { backgroundColor: appliedTheme.colors.primary } : {}}
+                  className="w-full flex items-center justify-center gap-1.5 py-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/10"
                 >
-                  <option value="low" className="text-slate-800 bg-white">Low Priority</option>
-                  <option value="medium" className="text-slate-800 bg-white">Medium Priority</option>
-                  <option value="high" className="text-slate-800 bg-white">High Priority</option>
-                </select>
+                  <FiPlus /> Create Task (Triggers Event)
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* PUBLIC MODE: Deliverables Showcase Summary Card */
+            <div className="p-6 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <FiShield className="text-emerald-500" /> Deliverables Space
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <FiLock className="text-[10px]" /> Public Link
+                </span>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading || !title.trim()}
-                className="w-full flex items-center justify-center gap-1.5 py-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/10"
-              >
-                <FiPlus /> Create Task (Triggers Event)
-              </button>
-            </form>
-          </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                This public interface displays all <strong>verified engineering milestones</strong> and deliverables created for this project. Task editing, status toggling, deletion, and AI generation are protected operations accessible only via the Admin Workspace.
+              </p>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-200/60 dark:border-white/5 flex flex-col gap-2.5 text-xs">
+                <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <FiCheckCircle className="text-emerald-500" /> Verified Milestones
+                </span>
+                <ul className="flex flex-col gap-2 text-slate-600 dark:text-slate-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    <span><strong>SiyaRang:</strong> Catalog Architecture & Order Pipeline</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    <span><strong>ResumeFit:</strong> Semantic Fit Scoring & Supabase DB</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    <span><strong>FinLite:</strong> PDF Balance Sheet & Predictive Analytics</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    <span><strong>FormFlux:</strong> Dynamic Schema DB & Live XLSX Tracker</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex flex-col gap-2">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Need to add, edit, or manage tasks?
+                </span>
+                <Link
+                  to="/login"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition hover:scale-[1.02]"
+                >
+                  <FiLock /> Sign In to Admin Workspace
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Architecture Badge Card */}
           <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 border border-blue-500/20 backdrop-blur-md flex flex-col gap-3">
@@ -780,15 +1238,25 @@ export default function TaskManagerDemo() {
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                  </select>
+                  {isAdmin ? (
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  ) : (
+                    <select
+                      value="completed"
+                      disabled
+                      className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 cursor-not-allowed outline-none"
+                    >
+                      <option value="completed">Completed Tasks (Read Only)</option>
+                    </select>
+                  )}
 
                   <select
                     value={priorityFilter}
@@ -830,31 +1298,48 @@ export default function TaskManagerDemo() {
                           className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 group hover:shadow-lg dark:hover:bg-white/10 transition-all duration-300 hover:border-blue-500/50"
                         >
                           <div className="flex items-start gap-4 flex-grow">
-                            <button
-                              onClick={() => handleToggleComplete(task)}
-                              className={`mt-1 w-6 h-6 rounded-full border flex items-center justify-center text-xs shrink-0 transition-all duration-300 ${
-                                task.completed
-                                  ? "bg-blue-600 border-blue-600 text-white"
-                                  : "border-slate-300 dark:border-white/20 text-transparent hover:border-blue-500 hover:scale-105"
-                              }`}
-                            >
-                              <FiCheck className="stroke-[3]" />
-                            </button>
+                            {isAdmin ? (
+                              <button
+                                onClick={() => handleToggleComplete(task)}
+                                className={`mt-1 w-6 h-6 rounded-full border flex items-center justify-center text-xs shrink-0 transition-all duration-300 ${
+                                  task.completed
+                                    ? "bg-blue-600 border-blue-600 text-white"
+                                    : "border-slate-300 dark:border-white/20 text-transparent hover:border-blue-500 hover:scale-105"
+                                }`}
+                                title={task.completed ? "Mark as pending" : "Mark as completed"}
+                              >
+                                <FiCheck className="stroke-[3]" />
+                              </button>
+                            ) : (
+                              <div
+                                className="mt-1 w-6 h-6 rounded-full bg-emerald-600 border border-emerald-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm"
+                                title="Verified completed deliverable (read-only)"
+                              >
+                                <FiCheck className="stroke-[3]" />
+                              </div>
+                            )}
                             
                             <div className="flex-grow">
-                              <span className={`text-base font-bold transition-all duration-300 ${
-                                task.completed 
-                                  ? "line-through text-slate-400 dark:text-slate-500" 
-                                  : "text-slate-900 dark:text-white"
-                              }`}>
-                                {task.title}
-                              </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-base font-bold transition-all duration-300 ${
+                                  isAdmin && task.completed 
+                                    ? "line-through text-slate-400 dark:text-slate-500" 
+                                    : "text-slate-900 dark:text-white"
+                                }`}>
+                                  {task.title}
+                                </span>
+                                {!isAdmin && (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                                    ✓ Completed
+                                  </span>
+                                )}
+                              </div>
                               
                               {task.description && (
                                 <p className={`text-sm mt-1 leading-relaxed ${
-                                  task.completed 
+                                  isAdmin && task.completed 
                                     ? "text-slate-400/80 dark:text-slate-600" 
-                                    : "text-slate-500 dark:text-slate-400"
+                                    : "text-slate-600 dark:text-slate-300"
                                 }`}>
                                   {task.description}
                                 </p>
@@ -882,13 +1367,32 @@ export default function TaskManagerDemo() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => handleDeleteTask(taskId)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all duration-300 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 focus:opacity-100 shrink-0"
-                            title="Delete task (emits task-deleted event)"
-                          >
-                            <FiTrash2 className="text-base" />
-                          </button>
+                          {isAdmin ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => handleOpenEdit(task)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all duration-300 opacity-80 hover:opacity-100 scale-95 hover:scale-100"
+                                title="Edit task details"
+                              >
+                                <FiEdit2 className="text-base" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTask(taskId)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all duration-300 opacity-80 hover:opacity-100 scale-95 hover:scale-100"
+                                title="Delete task (emits task-deleted event)"
+                              >
+                                <FiTrash2 className="text-base" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              className="flex items-center gap-1 text-slate-400 shrink-0 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 font-mono text-[10px]"
+                              title="Read-only deliverable"
+                            >
+                              <FiLock className="text-xs text-slate-400" />
+                              <span className="hidden sm:inline">Locked</span>
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })
@@ -991,6 +1495,298 @@ export default function TaskManagerDemo() {
         </div>
 
       </div>
+
+      {/* Admin Edit Task Modal */}
+      <AnimatePresence>
+        {isAdmin && editingTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-w-lg w-full p-6 flex flex-col gap-5 text-slate-800 dark:text-slate-100"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-blue-600 text-white text-lg">
+                    <FiEdit2 />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Edit Task (Admin Workspace)</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Update task details, description, status, and priority
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingTask(null)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Task Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Priority
+                    </label>
+                    <select
+                      value={editForm.priority}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, priority: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
+                    >
+                      <option value="low" className="text-slate-800 bg-white">Low</option>
+                      <option value="medium" className="text-slate-800 bg-white">Medium</option>
+                      <option value="high" className="text-slate-800 bg-white">High</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Assigned User
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.assignedUser}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, assignedUser: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 pt-2">
+                  <input
+                    type="checkbox"
+                    id="edit-completed"
+                    checked={editForm.completed}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, completed: e.target.checked }))}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor="edit-completed" className="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                    Task Completed
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTask(null)}
+                    className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 dark:border-white/10 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-lg shadow-blue-500/20"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Design Suggestion Modal (Practical 15 / Assignment 7) */}
+      <AnimatePresence>
+        {aiDesignModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5 text-slate-800 dark:text-slate-100"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 text-white text-lg">
+                    <FiSliders />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      AI-Assisted UI Design Suggestions
+                      {designSuggestion && (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                          {designSuggestion.source || "AI Generated"}
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Prompt engineered design system recommendations with WCAG contrast evaluation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAiDesignModalOpen(false)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              {/* Loading State */}
+              {loadingDesign && (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
+                  <FiRotateCw className="text-3xl text-indigo-500 animate-spin" />
+                  <p className="text-sm font-semibold">Generating customized UI suggestions with AI...</p>
+                  <p className="text-xs text-slate-400">Analyzing contrast ratios, typography pairings, and layout efficiency</p>
+                </div>
+              )}
+
+              {/* Suggestions Loaded */}
+              {!loadingDesign && designSuggestion && (
+                <div className="flex flex-col gap-5">
+                  {/* Color Scheme Section */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <FiEye className="text-indigo-500" /> Suggested Color Scheme
+                      </span>
+                      {/* Contrast Ratio Badge (Responsible AI) */}
+                      {(() => {
+                        const bg = designSuggestion.colors?.background || '#0f172a';
+                        const primary = designSuggestion.colors?.primary || '#6366f1';
+                        const ratio = getContrastRatio(primary, bg);
+                        const isSafe = ratio >= 4.5;
+                        return (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              isSafe
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                            }`}
+                          >
+                            Contrast: {ratio}:1 {isSafe ? "✓ WCAG AA Pass" : "⚠️ Needs Review"}
+                          </span>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {Object.entries(designSuggestion.colors || {}).map(([key, val]) => (
+                        <div key={key} className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-black/20 border border-slate-200/60 dark:border-white/5">
+                          <span
+                            className="w-7 h-7 rounded-lg shadow-inner shrink-0 border border-black/10"
+                            style={{ backgroundColor: val }}
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 truncate">{key}</span>
+                            <span className="text-xs font-mono font-semibold truncate">{val}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Font Pairing Section */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FiCode className="text-purple-500" /> Typography & Font Pairing
+                    </span>
+                    <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-lg bg-white dark:bg-black/20 border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Heading Font</span>
+                        <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                          {designSuggestion.fonts?.heading || "Outfit, Space Grotesk"}
+                        </span>
+                        <span className="text-[11px] text-slate-500 italic mt-1">
+                          "High readability and modern aesthetic for task titles"
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-white dark:bg-black/20 border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Body Font</span>
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                          {designSuggestion.fonts?.body || "Inter, Sora"}
+                        </span>
+                        <span className="text-[11px] text-slate-500 italic mt-1">
+                          "Clean geometric sans-serif optimized for density"
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Layout Tip Section */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FiLayout className="text-pink-500" /> Actionable Layout Improvement
+                    </span>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                      💡 {designSuggestion.layoutTip || "Organize tasks by status and priority with high-contrast badge indicators."}
+                    </p>
+                  </div>
+
+                  {/* Responsible AI Disclaimer Banner */}
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                    <FiAlertTriangle className="text-amber-500 shrink-0 text-base mt-0.5" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-[11px]">Responsible AI Governance (Human-in-the-Loop):</span>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-normal">
+                        Always evaluate AI output prior to committing to production. Contrast ratios must meet WCAG 2.1 AA standards (minimum 4.5:1) to ensure full accessibility for users with visual impairments.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-white/10">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={resetAiDesign}
+                        className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 dark:border-white/10 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                      >
+                        Reset Theme
+                      </button>
+                      <button
+                        onClick={fetchDesignSuggestion}
+                        className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/15 transition flex items-center gap-1"
+                      >
+                        <FiRotateCw /> Regenerate
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => {
+                        applyAiDesign(designSuggestion);
+                        setAiDesignModalOpen(false);
+                      }}
+                      className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white transition shadow-lg shadow-indigo-500/20 flex items-center gap-1.5"
+                    >
+                      <FiCheckCircle /> Apply AI Design to UI
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
